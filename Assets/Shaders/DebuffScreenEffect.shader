@@ -19,6 +19,8 @@ Shader "Hidden/Game/DebuffScreenEffect"
     }
 
     HLSLINCLUDE
+    #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
     CBUFFER_START(UnityPerMaterial)
