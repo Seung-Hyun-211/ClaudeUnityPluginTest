@@ -15,12 +15,12 @@
 
 ### 캐릭터 / 전투 / AI
 
-- [combat-system.md](combat-system.md) — "피격당할 수 있다"를 캐릭터와 무관한 `IDamageable` 인터페이스로 분리, 오브젝트(파괴 가능한 상자 등)에도 재사용 가능하도록 설계. `IDamageable`/`HealthComponent`는 무기 시스템의 필요로 구현됨(그 외 캐릭터 시스템은 여전히 설계 문서만 존재)
-- [character-system.md](character-system.md) — Player / NPC / Enemy(Normal, Elite, Boss)를 상속이 아닌 컴포넌트 합성으로 구성
-- [ai-state-machine.md](ai-state-machine.md) — Enemy AI를 상태 패턴(State Pattern)으로 설계, Elite/Boss(다중 페이즈) 확장 방식 포함
-- [npc-roles.md](npc-roles.md) — NPC를 전투 도움용(Companion)/마을용(Village)으로 분화, `IAiBrain`을 Enemy 전용에서 공용 프레임워크로 일반화
-- [player-attributes.md](player-attributes.md) — 스태미나(달리기/점프 제한)와 지구력·힘·행운 등 기초 스탯이 각종 확률·능력치에 반영되는 구조
-- [hud-system.md](hud-system.md) — 1인칭/3인칭 슈팅 HUD 레이아웃(체력·방어구·무기 / 상태 / 퀵슬롯 / 나침반 / 미니맵). 나침반·미니맵이 `IWorldMarker` 레지스트리를 공유하도록 설계
+- [combat-system.md](combat-system.md) — "피격당할 수 있다"를 캐릭터와 무관한 `IDamageable` 인터페이스로 분리, 오브젝트(파괴 가능한 상자 등)에도 재사용 가능하도록 설계. `IDamageable`/`HealthComponent`/`ArmorComponent` 구현됨
+- [character-system.md](character-system.md) — Player / NPC / Enemy(Normal, Elite, Boss)를 상속이 아닌 컴포넌트 합성으로 구성. Player·공통 요소(Faction/CharacterMotor 등) 구현됨, NPC/Enemy는 아직 설계 문서만 존재
+- [ai-state-machine.md](ai-state-machine.md) — Enemy AI를 상태 패턴(State Pattern)으로 설계, Elite/Boss(다중 페이즈) 확장 방식 포함. 프레임워크(`IAiState`/`AiStateMachine`/`AiContext`/`AiSensor`)와 공통 상태 5개 구현됨
+- [npc-roles.md](npc-roles.md) — NPC를 전투 도움용(Companion)/마을용(Village)으로 분화, `IAiBrain`을 Enemy 전용에서 공용 프레임워크로 일반화(설계 문서만 존재)
+- [player-attributes.md](player-attributes.md) — 스태미나(달리기/점프 제한)와 지구력·힘·행운 등 기초 스탯이 각종 확률·능력치에 반영되는 구조. 구현됨
+- [hud-system.md](hud-system.md) — 1인칭/3인칭 슈팅 HUD 레이아웃(체력·방어구·무기 / 상태 / 퀵슬롯 / 나침반 / 미니맵). 나침반·미니맵이 `IWorldMarker` 레지스트리를 공유. 구현됨
 
 ### 설계 검증
 
@@ -46,17 +46,16 @@
 | 상호작용 프롬프트 UI | `Assets/Scripts/Interaction/UI` | `Game.Interaction.UI` | 구현됨 |
 | 창 프레임워크(`IWindow`, `WindowManager`, 팝업) | `Assets/Scripts/UI/Windows` | `Game.UI.Windows` | 구현됨 |
 | 팝업 콘텐츠 예시(퍼즐/이벤트) | `Assets/Scripts/UI/Windows/Popups` | `Game.UI.Windows.Popups` | 구현됨 |
-| 피격 가능 인터페이스/체력 | `Assets/Scripts/Combat` | `Game.Combat` | 구현됨 |
-| 캐릭터 공통(Faction, 스탯) | `Assets/Scripts/Characters/Core` | `Game.Characters` | 설계만 완료 |
-| 플레이어 컨트롤러 | `Assets/Scripts/Characters/Player` | `Game.Characters.Player` | 설계만 완료 |
+| 피격 가능 인터페이스/체력/방어구 | `Assets/Scripts/Combat` | `Game.Combat` | 구현됨 |
+| 캐릭터 공통(Faction, 스탯, 이동) | `Assets/Scripts/Characters/Core` | `Game.Characters` | 구현됨 |
+| 플레이어 컨트롤러/스태미나/기초 스탯 | `Assets/Scripts/Characters/Player` | `Game.Characters.Player` | 구현됨 |
 | NPC 컨트롤러(Village/CombatHelper 공통) | `Assets/Scripts/Characters/Npc` | `Game.Characters.Npc` | 설계만 완료 |
 | Enemy 컨트롤러/데이터 | `Assets/Scripts/Characters/Enemy` | `Game.Characters.Enemy` | 설계만 완료 |
-| AI 상태 머신 프레임워크(`IAiBrain` 포함) | `Assets/Scripts/AI/StateMachine` | `Game.AI` | 설계만 완료 |
-| AI 구체 상태들 | `Assets/Scripts/AI/States` | `Game.AI.States` | 설계만 완료 |
-| 플레이어 스태미나/기초 스탯 | `Assets/Scripts/Characters/Player` | `Game.Characters.Player` | 설계만 완료 |
-| HUD 표시 제어/핫바 레이아웃(`HotbarLayoutController`) | `Assets/Scripts/HUD` | `Game.HUD` | 부분 구현됨 |
-| 월드 마커 레지스트리(나침반/미니맵 공유) | `Assets/Scripts/HUD/Markers` | `Game.HUD.Markers` | 설계만 완료 |
-| 나침반 | `Assets/Scripts/HUD/Compass` | `Game.HUD.Compass` | 설계만 완료 |
-| 미니맵 | `Assets/Scripts/HUD/Minimap` | `Game.HUD.Minimap` | 설계만 완료 |
+| AI 상태 머신 프레임워크(`IAiBrain` 포함) | `Assets/Scripts/AI/StateMachine` | `Game.AI` | 구현됨 |
+| AI 구체 상태들(Idle/Patrol/Chase/Attack/Dead) | `Assets/Scripts/AI/States` | `Game.AI.States` | 구현됨 |
+| HUD 표시 제어/핫바 레이아웃/체력·방어구·무기 패널 | `Assets/Scripts/HUD` | `Game.HUD` | 구현됨 |
+| 월드 마커 레지스트리(나침반/미니맵 공유) | `Assets/Scripts/HUD/Markers` | `Game.HUD.Markers` | 구현됨 |
+| 나침반 | `Assets/Scripts/HUD/Compass` | `Game.HUD.Compass` | 구현됨 |
+| 미니맵 | `Assets/Scripts/HUD/Minimap` | `Game.HUD.Minimap` | 구현됨 |
 | 무기 시스템(총기/근접/파츠/탄약/장착/픽업/1·2·3 고정키) | `Assets/Scripts/Weapons` | `Game.Weapons` | 구현됨 |
 | 무기 슬롯 UI | `Assets/Scripts/Weapons/UI` | `Game.Weapons.UI` | 구현됨 |
