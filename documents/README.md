@@ -26,7 +26,7 @@
 
 ### 씬 / 지속성
 
-- [scene-and-persistence-system.md](scene-and-persistence-system.md) — Title/Loading(재사용)/InGameLobby/InGameCombat 씬 분리와 전환(`SceneFlowController`), 씬을 오가도 사라지면 안 되는 런타임 데이터(`PlayerRuntimeContext`), 게임을 껐다 켜도 유지되는 세이브 데이터(`ISaveDataProvider`/`SaveGameService`)를 분리해 설계. 설계만 완료
+- [scene-and-persistence-system.md](scene-and-persistence-system.md) — Title/Loading(재사용)/InGameLobby/InGameCombat 씬 분리와 전환(`SceneFlowController`), 씬을 오가도 사라지면 안 되는 런타임 데이터(`PlayerRuntimeContext`), 게임을 껐다 켜도 유지되는 세이브 데이터(`ISaveDataProvider`/`SaveGameService`)를 분리해 설계. 프레임워크 구현됨(기존 서브시스템의 `ISaveDataProvider` 연동, 실제 씬 자산, `PlayerRuntimeContext` 배선은 아직)
 
 ### 설계 검증
 

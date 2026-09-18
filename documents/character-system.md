@@ -1,6 +1,6 @@
 # 캐릭터 시스템 — Player / NPC / Enemy(Normal, Elite, Boss)
 
-플레이어블 캐릭터, NPC, Enemy를 하나의 깊은 상속 계층(`Character` → `Npc` → `Enemy` → `EliteEnemy` → `BossEnemy`)으로 만들지 않고, **공통 능력을 컴포넌트로 조립(합성)**하는 방식으로 설계한다. 예정 코드 위치는 `Assets/Scripts/Characters` 하위 (`Game.Characters`, `Game.Characters.Player`, `Game.Characters.Npc`, `Game.Characters.Enemy`).
+플레이어블 캐릭터, NPC, Enemy를 하나의 깊은 상속 계층(`Character` → `Npc` → `Enemy` → `EliteEnemy` → `BossEnemy`)으로 만들지 않고, **공통 능력을 컴포넌트로 조립(합성)**하는 방식으로 설계한다. 코드 위치는 `Assets/Scripts/Characters` 하위 (`Game.Characters`, `Game.Characters.Player`, `Game.Characters.Npc`, `Game.Characters.Enemy`) — 넷 다 구현 완료.
 
 ## 왜 상속이 아니라 합성인가
 
@@ -78,13 +78,13 @@ classDiagram
     class NpcController {
         -FactionMember faction
     }
-    class IInteractable {
-        <<interface>>
+    class DialogueInteractable {
+        <<IInteractable>>
     }
-    NpcController ..|> IInteractable
+    NpcController --> DialogueInteractable : 같은 GameObject에 나란히 부착(대화가 필요한 프리팹만)
 ```
 
-- **`IInteractable`을 그대로 재사용한다.** 처음에는 아이템 시스템(`Game.Items`)에 있었지만, 문(Door) 등 다른 상호작용 종류가 생기면서 `Game.Interaction`(`Assets/Scripts/Interaction`)으로 일반화해 옮겼다 — 자세한 내용과 확장 방식은 [interaction-system.md](interaction-system.md) 참고.
+- **`IInteractable`을 그대로 재사용한다.** 처음에는 아이템 시스템(`Game.Items`)에 있었지만, 문(Door) 등 다른 상호작용 종류가 생기면서 `Game.Interaction`(`Assets/Scripts/Interaction`)으로 일반화해 옮겼다 — 자세한 내용과 확장 방식은 [interaction-system.md](interaction-system.md) 참고. **`NpcController` 자신은 `IInteractable`을 구현하지 않는다** — 실제 구현 단계에서 확정된 결정으로, 대화가 필요한 Village NPC 프리팹은 기존 `DialogueInteractable` 컴포넌트를 `NpcController` 옆에 별도로 붙인다(한 GameObject에 두 개의 경쟁하는 `IInteractable` 구현이 생기는 것을 피하기 위함). CombatHelper NPC는 애초에 상호작용이 필요 없으므로 아무것도 안 붙인다.
 - `HealthComponent`를 붙일지는 NPC 성격에 따라 선택: 공격받을 수 없는 퀘스트 NPC는 아예 컴포넌트를 안 붙이면 되고(→ 공격 로직이 `IDamageable`을 못 찾아 자연히 무시), 다치거나 죽을 수 있는 NPC(호위 대상, 전투 도움용 NPC 등)는 Enemy와 동일한 `HealthComponent`를 붙인다.
 - AI가 필요한 NPC(전투 도움용)는 Enemy와 동일한 `AiStateMachine` 프레임워크를 그대로 쓴다 — 자세한 내용과 상태 재사용 방식은 [npc-roles.md](npc-roles.md) 참고.
 

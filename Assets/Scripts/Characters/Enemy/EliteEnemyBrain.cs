@@ -27,7 +27,7 @@ namespace Game.Characters.Enemy
 
         public IAiState BuildInitialState(AiContext context)
         {
-            var chaseSlot = new DeferredAiState();
+            var chaseSlot = new ForwardingAiState();
 
             var normalAttackState = new AttackState(chaseSlot, data.AttackRange, damageAmount: data.AttackDamage);
             var specialAttackState = new SpecialAttackState(chaseSlot, specialAttackCooldown, data.AttackDamage * specialAttackDamageMultiplier);

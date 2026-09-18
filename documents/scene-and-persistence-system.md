@@ -69,6 +69,11 @@ namespace Game.SceneFlow
         // 세이브 시스템은 TransitionStarted가 아니라 이 이벤트에서 디스크에 쓴다(§4).
         public event Action LoadingScreenEntered;
         public event Action<SceneKind> TransitionCompleted;
+        // Loading 씬의 진행률 표시용. SceneFlowController는 UI 타입을 전혀
+        // 몰라야 하므로(의존성 역전) LoadingProgressUIView 같은 구체 UI를
+        // 직접 참조하지 않고 이벤트로만 진행률을 흘려보낸다 — Loading 씬의
+        // UI 스크립트가 이 이벤트를 구독해서 자기 프로그레스 바를 채운다.
+        public event Action<float> LoadingProgressChanged;
 
         public void RequestTransition(SceneKind target)
         {
@@ -90,10 +95,11 @@ namespace Game.SceneFlow
 
             while (op.progress < 0.9f)
             {
-                LoadingProgressUIView.Instance?.SetProgress(op.progress / 0.9f);
+                LoadingProgressChanged?.Invoke(op.progress / 0.9f);
                 yield return null;
             }
 
+            LoadingProgressChanged?.Invoke(1f);
             op.allowSceneActivation = true;
             yield return op;
 
@@ -103,7 +109,7 @@ namespace Game.SceneFlow
 }
 ```
 
-`Loading` 씬은 `op`가 무엇을 로드하는지, 로드가 끝난 뒤 뭘 해야 하는지 전혀 모른다 — 그냥 진행률만 그린다(`LoadingProgressUIView`). 이 덕분에 Title→Lobby든 Lobby→Combat이든 Combat→Lobby든 동일한 Loading 씬 하나로 처리된다("재활용" 요구사항 충족).
+`Loading` 씬은 `op`가 무엇을 로드하는지, 로드가 끝난 뒤 뭘 해야 하는지 전혀 모른다 — `LoadingProgressChanged` 이벤트를 구독해서 그냥 진행률만 그린다. 이 덕분에 Title→Lobby든 Lobby→Combat이든 Combat→Lobby든 동일한 Loading 씬 하나로 처리된다("재활용" 요구사항 충족).
 
 `TransitionStarted`/`LoadingScreenEntered`/`TransitionCompleted` 이벤트는 §4의 세이브 시스템이 구독한다 — `SceneFlowController`는 `Game.Persistence`를 참조하지 않고, 반대로 `Persistence` 쪽이 `SceneFlow`의 이벤트를 구독하는 단방향 의존성을 유지한다(의존성 역전 — 씬 전환이라는 저수준 메커니즘이 세이브라는 정책을 몰라도 되게). `TransitionStarted`는 "이 전환이 자동 저장 대상인가"를 판단하는 시점, `LoadingScreenEntered`는 실제로 디스크에 쓰는 시점으로 역할을 분리한다(§4) — Loading 씬이 화면에 떠 있는 동안에만 저장 I/O가 일어나므로, 아직 언로드 중인 게임플레이 씬 상태를 저장하거나 로딩 화면 없이 저장으로 인한 끊김을 노출하는 일이 없다.
 
@@ -121,7 +127,12 @@ namespace Game.SceneFlow
     {
         public static PlayerRuntimeContext Instance { get; private set; }
 
-        public PlayerController ActivePlayer { get; private set; }
+        // 실제 구현은 PlayerController가 아니라 GameObject로 타입을 뺐다 —
+        // Game.SceneFlow가 Game.Characters.Player에 하드 컴파일 의존을 갖지
+        // 않게 하기 위해서다(그 반대 방향 의존은 이미 있지만, 씬 관리라는
+        // 저수준 모듈이 특정 캐릭터 구현 타입을 알 필요는 없다 — 의존성
+        // 역전). 필요한 쪽이 GetComponent<PlayerController>()로 꺼내 쓴다.
+        public GameObject ActivePlayer { get; private set; }
 
         private void Awake()
         {
@@ -130,8 +141,9 @@ namespace Game.SceneFlow
             DontDestroyOnLoad(gameObject);
         }
 
-        // 씬 로드 후, 그 씬의 스폰 포인트에 생성된 PlayerController가 자신을 등록한다.
-        public void BindActivePlayer(PlayerController player) => ActivePlayer = player;
+        // 씬 로드 후, 그 씬의 스폰 포인트에 생성된 PlayerController가 자신의
+        // gameObject로 이 메서드를 호출해 등록한다.
+        public void BindActivePlayer(GameObject player) => ActivePlayer = player;
     }
 }
 ```
@@ -286,7 +298,13 @@ namespace Game.Persistence
     // 그대로 타므로 "F키로 상호작용" 같은 처리가 이미 다 되어 있다.
     public class SaveTriggerPoint : MonoBehaviour, IInteractable
     {
-        [SerializeField] private ISaveRequestSink saveSink; // 인스펙터에서 SaveGameService 참조
+        // Unity 인스펙터는 순수 인터페이스 필드를 직렬화하지 못하므로,
+        // WindowManager.backgroundObscurerSource와 동일한 패턴으로
+        // MonoBehaviour로 받아 Awake에서 ISaveRequestSink로 캐스팅한다.
+        [SerializeField] private MonoBehaviour saveSinkSource;
+        private ISaveRequestSink saveSink;
+
+        private void Awake() => saveSink = saveSinkSource as ISaveRequestSink;
 
         public void Interact(GameObject interactor) =>
             saveSink.RequestSave(SaveTriggerReason.ManualSavePoint);

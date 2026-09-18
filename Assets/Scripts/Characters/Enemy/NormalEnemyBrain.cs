@@ -24,8 +24,8 @@ namespace Game.Characters.Enemy
         {
             // Chase/Attack/Patrol form a 3-way constructor cycle (Chase needs
             // Attack+Patrol, Attack needs Chase, Patrol needs Chase) - see
-            // DeferredAiState for why a stand-in is required to build this.
-            var chaseSlot = new DeferredAiState();
+            // ForwardingAiState for why a stand-in is required to build this.
+            var chaseSlot = new ForwardingAiState();
 
             var attackState = new AttackState(chaseSlot, data.AttackRange, damageAmount: data.AttackDamage);
             var patrolState = new PatrolState(chaseSlot);

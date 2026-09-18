@@ -50,8 +50,8 @@ namespace Game.Characters.Enemy
 
             // PhaseIdleState/PhaseAttackState need each other's instance at
             // construction (same readonly-field cycle problem NormalEnemyBrain
-            // solves for Idle/Patrol/Chase/Attack) - see DeferredAiState.
-            var idleSlot = new DeferredAiState();
+            // solves for Idle/Patrol/Chase/Attack) - see ForwardingAiState.
+            var idleSlot = new ForwardingAiState();
             var attackState = new PhaseAttackState(nestedMachine, idleSlot, attackRange, damageAmount);
             var idleState = new PhaseIdleState(nestedMachine, attackState, idleDuration);
             idleSlot.Target = idleState;

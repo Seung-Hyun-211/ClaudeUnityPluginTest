@@ -1,6 +1,6 @@
 # 전투 시스템 — 피격 가능(Damageable) 인터페이스
 
-"공격을 당할 수 있다"는 성질을 캐릭터에 종속시키지 않고 별도 인터페이스로 뽑아내서, 플레이어/NPC/Enemy는 물론 나중에 부서지는 상자·벽 같은 오브젝트에도 그대로 붙일 수 있도록 설계한다. 코드 위치는 `Assets/Scripts/Combat` (`Game.Combat` 네임스페이스) — 캐릭터/AI 네임스페이스에 두지 않는 것이 핵심이다. 캐릭터 시스템이 이 네임스페이스를 참조하지, 그 반대가 아니다 (의존 방향: `Game.Characters` → `Game.Combat`). [weapon-system.md](weapon-system.md)에서 총기/근접무기가 실제로 데미지를 넣어야 했기 때문에 `IDamageable`/`HealthComponent`를 이때 실제 코드로 구현했다 — 캐릭터 시스템(`Game.Characters`) 자체는 여전히 설계 문서 단계다.
+"공격을 당할 수 있다"는 성질을 캐릭터에 종속시키지 않고 별도 인터페이스로 뽑아내서, 플레이어/NPC/Enemy는 물론 나중에 부서지는 상자·벽 같은 오브젝트에도 그대로 붙일 수 있도록 설계한다. 코드 위치는 `Assets/Scripts/Combat` (`Game.Combat` 네임스페이스) — 캐릭터/AI 네임스페이스에 두지 않는 것이 핵심이다. 캐릭터 시스템이 이 네임스페이스를 참조하지, 그 반대가 아니다 (의존 방향: `Game.Characters`(및 `Game.Characters.Player`/`.Enemy`/`.Npc`) → `Game.Combat`). [weapon-system.md](weapon-system.md)에서 총기/근접무기가 실제로 데미지를 넣어야 했기 때문에 `IDamageable`/`HealthComponent`를 이때 실제 코드로 구현했고, 이후 Player/Enemy/NPC 캐릭터 시스템도 전부 구현되어 이 컴포넌트를 실제로 사용 중이다.
 
 ## 설계 원칙
 
@@ -39,6 +39,7 @@ classDiagram
         +float Max
         +TakeDamage(DamageInfo)
         +Heal(float)
+        +SetMaxHealth(float)
     }
     HealthComponent ..|> IDamageable
     HealthComponent --> DamageInfo : receives
@@ -71,7 +72,7 @@ Vector3 HitPoint;     // 피격 이펙트 위치
 ### `HealthComponent` (MonoBehaviour, `IDamageable` 구현체)
 
 - `CurrentHealth`/`MaxHealth`를 갖는 표준 구현. 플레이어, NPC, 일반/엘리트/보스 Enemy가 전부 이 컴포넌트를 그대로 붙여서 쓴다.
-- 초기치는 캐릭터별 스탯 데이터(`CharacterStatsData`/`EnemyData`, [character-system.md](character-system.md) 참고)에서 주입받는다 — `HealthComponent` 자체는 "누구 것인지" 모른다.
+- 초기치는 캐릭터별 스탯 데이터(`CharacterStatsData`/`EnemyData`, [character-system.md](character-system.md) 참고)에서 주입받는다 — `HealthComponent` 자체는 "누구 것인지" 모른다. 주입 통로는 `SetMaxHealth(float)`(2026-09-18 추가, 최대치 갱신 + 즉시 풀피로 초기화) — 스폰/초기화 시점 전용이며 전투 중 회복(`Heal`)과는 별개 메서드다.
 - 데미지 적용 시 `Current <= 0`이 되는 순간 `Died` 발생 후 더 이상 `TakeDamage`를 받지 않도록(사망 후 중복 처리 방지) 가드한다.
 - **`Game.Player.IReadOnlyStat`도 함께 구현한다**(`Current`/`Max`는 이미 있으니 `Changed`를 체력 변화 시(피격/회복 모두) 추가로 올리기만 하면 된다). `Damaged`/`Died`는 "왜 바뀌었는지"를 아는 전투 로직용 이벤트로 남기고, `Changed`는 "값이 바뀌었다"만 아는 UI 바인딩용 이벤트로 구분한다 — 이렇게 해두면 [hud-system.md](hud-system.md)의 체력 바가 기존 `StatBarUIView`를 그대로 재사용할 수 있다. `ArmorComponent`(방어구 수치, HUD용)도 같은 이유로 `IReadOnlyStat`을 구현하는 것을 전제로 설계했다 — 자세한 내용은 [hud-system.md](hud-system.md) 참고.
 

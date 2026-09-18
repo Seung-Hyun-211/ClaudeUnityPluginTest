@@ -294,7 +294,7 @@ graph LR
 - `SpecialAttackState.cs`, `SpecialAttackGate.cs` — Elite 전용 쿨다운 특수 공격
 - `BossEnemyBrain.cs` — class BossEnemyBrain : IAiBrain (2페이즈, `HealthComponent.Damaged` 기준 전환)
 - `BossPhaseState.cs`, `PhaseIdleState.cs`, `PhaseAttackState.cs` — 페이즈별 파라미터만 다르게 구성되는 재사용 클래스(페이즈마다 별도 클래스를 만들지 않음, DRY)
-- `DeferredAiState.cs` — `ChaseState`/`AttackState`/`PatrolState`가 서로를 `readonly` 생성자 인자로 요구하는 순환 구성 문제를 깨는 내부 프록시(`Target`을 실제 상태 생성 후 대입) — `Game.AI.States`는 건드리지 않음
+- (순환 구성 프록시는 `Game.AI.ForwardingAiState`로 통합됨 — 아래 `AI/StateMachine` 절 참고. Enemy 트랙이 처음 `DeferredAiState`로 로컬 구현했던 것을 2026-09-18에 NPC 트랙의 동일한 클래스와 통합하며 삭제)
 
 ### Characters/Npc (`Game.Characters.Npc`, 2026-09-18 신설)
 - `NpcRole.cs` — enum NpcRole (Village/CombatHelper)
@@ -304,7 +304,7 @@ graph LR
 - `CompanionOrderReceiver.cs` — class CompanionOrderReceiver : MonoBehaviour (현재 주문 + AttackTarget 보관)
 - `CompanionBrain.cs` — class CompanionBrain : IAiBrain (Follow/Hold/AssistCombat 그래프, AssistCombat = `Game.AI.States.ChaseState`/`AttackState` 그대로 재사용)
 - `WanderBrain.cs` — class WanderBrain : IAiBrain (Village NPC용, Idle/Patrol 재사용 — Chase/Attack도 배선하지만 Neutral 진영이라 실질적으로 도달 불가)
-- `ForwardingAiState.cs` — `DeferredAiState`와 동일한 목적의 내부 순환-구성 프록시(Enemy 트랙과 별개로 독립 구현 — 두 트랙이 같은 문제를 각자 풀었다는 뜻, §D 참고)
+- (마찬가지로 `Game.AI.ForwardingAiState`로 통합됨 — 이 트랙의 로컬 구현은 삭제)
 
 ### AI/StateMachine (`Game.AI`)
 - `IAiState.cs` — interface IAiState — Layer 0
@@ -312,6 +312,7 @@ graph LR
 - `IAiBrain.cs` — interface IAiBrain — Layer 0
 - `AiSensor.cs` — class AiSensor : MonoBehaviour → `Game.Characters`, `Game.Combat` (+`SetDetectionRadius(float)`, 2026-09-18 — 위 `HealthComponent.SetMaxHealth`와 동일한 이유)
 - `AiContext.cs` — class AiContext → `Game.Combat` (Self: GameObject, Sensor/CurrentTarget/StateMachine 블랙보드)
+- `ForwardingAiState.cs` — sealed class ForwardingAiState : IAiState (2026-09-18 신설, Layer 0). `ChaseState`/`AttackState`/`PatrolState` 등이 서로를 `readonly` 생성자 인자로 요구해 생기는 순환 구성 문제를 깨는 자리표시자(`Target`을 실제 상태 생성 후 대입) — Enemy 트랙의 `DeferredAiState`와 NPC 트랙의 동일 클래스가 각자 독립적으로 이 문제를 풀었던 것을 병합 후 이 파일 하나로 통합(DRY). `NormalEnemyBrain`/`EliteEnemyBrain`/`BossEnemyBrain`/`CompanionBrain`/`WanderBrain` 전부 이걸 씀
 
 ### AI/States (`Game.AI.States`)
 - `IdleState.cs`, `PatrolState.cs`, `ChaseState.cs`, `AttackState.cs`, `DeadState.cs` — 전부 `class X : IAiState` → `Game.AI`, `Game.Characters`, `Game.Combat` (단, `context.Self` 미사용 — `AiSensor` 경유만)

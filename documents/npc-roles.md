@@ -36,14 +36,12 @@ classDiagram
     }
     class NpcController {
         -NpcData data
-        +Interact(GameObject interactor)
+        +InitializeAi(IAiBrain brain)
     }
-    class IInteractable { <<interface>> }
     class HealthComponent
     class FactionMember
 
     NpcController --> NpcData
-    NpcController ..|> IInteractable
     NpcController -- HealthComponent : 선택적
     NpcController -- FactionMember
 ```
@@ -51,6 +49,7 @@ classDiagram
 - **`NpcRole`**은 분류용 값이며(스폰 테이블, 저장 데이터 구분 등), 동작 차이의 근거는 아니다 — Enemy의 `EnemyTier`와 동일한 접근.
 - **`NpcData`**는 이름/소속/기본 스탯을 담은 애셋. `CharacterStatsData`를 재사용해 Player/Enemy와 동일한 스탯 개념을 공유한다.
 - 새 역할이 필요하면: (1) `NpcRole`에 항목 추가 (2) 아래처럼 해당 역할에 필요한 컴포넌트 조합의 프리팹 추가. `NpcController` 자체는 건드리지 않는다(개방-폐쇄 원칙).
+- **`NpcController`는 `IInteractable`을 구현하지 않는다** (실제 구현 단계에서 확정 — 아래 Village 절 참고). AI도 항상 켜져 있지 않다 — `HealthComponent`처럼 선택적이며, `InitializeAi(IAiBrain)`를 호출한 NPC만 `AiSensor`/`AiStateMachine`이 동작한다(고정 위치 Village NPC는 아예 호출 안 함).
 
 ## 마을용(Village) NPC 구성
 
@@ -58,16 +57,16 @@ classDiagram
 graph TD
     NpcController["NpcController<br/>Role = Village"]
     FactionMember["FactionMember(Neutral)"]
-    DialogueInteraction["DialogueInteraction<br/>: IInteractable"]
+    DialogueInteractable["DialogueInteractable<br/>: IInteractable (별도 컴포넌트, NpcController 옆에 부착)"]
     HealthOptional["HealthComponent (선택)"]
 
     NpcController --> FactionMember
-    NpcController --> DialogueInteraction
+    NpcController -.같은 GameObject.-> DialogueInteractable
     NpcController -.있어도/없어도 됨.-> HealthOptional
 ```
 
 - `FactionMember(Neutral)` — Enemy의 적대 대상 탐지에서 제외된다.
-- `DialogueInteraction`이 `IInteractable.Interact()`를 구현해 대화창/상점을 연다(구체 UI는 범위 밖). `IInteractable`은 이제 `Game.Interaction`에 있으며([interaction-system.md](interaction-system.md)), 실제로 `DialogueInteractable`이라는 최소 골격(`Interact` 본문은 TODO)까지 구현되어 있다 — NPC 쪽에서는 이 컴포넌트를 그대로 붙이기만 하면 된다.
+- `DialogueInteractable`이 `IInteractable.Interact()`를 구현해 대화창/상점을 연다(구체 UI는 범위 밖). `IInteractable`은 `Game.Interaction`에 있으며([interaction-system.md](interaction-system.md)), 실제로 `DialogueInteractable`이라는 최소 골격(`Interact` 본문은 TODO)까지 구현되어 있다 — **`NpcController`가 이를 구현하는 게 아니라, 대화가 필요한 Village 프리팹에 이 컴포넌트를 `NpcController` 옆에 그대로 붙이기만 하면 된다**(위 "공통 구조" 절에서 확정한 대로 — 한 GameObject에 `IInteractable` 구현이 두 개 경쟁하는 걸 피하기 위함).
 - 대부분 `AiStateMachine` 없이 고정 위치에 서 있는다. 배회가 필요하면 Enemy와 **동일한** `IdleState`/`PatrolState`를 그대로 붙인 `WanderBrain : IAiBrain`을 하나 추가하면 된다 — 두 상태 모두 전투 개념(Chase/Attack)을 참조하지 않으므로 코드 재사용에 아무 문제가 없다.
 - 공격받을 수 있는 마을 NPC(습격 이벤트 대상 등)만 선택적으로 `HealthComponent`를 붙인다.
 
