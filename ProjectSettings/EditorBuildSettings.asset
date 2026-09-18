@@ -26,5 +26,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Tests/Test_Prefabs.unity
     guid: db4bb44cbef240f4696e807b085dbaf4
+  - enabled: 1
+    path: Assets/Scenes/Tests/Test_PlayerMovement.unity
+    guid: 6885330d6d63a744bae2be31ceed77a7
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

@@ -18,6 +18,7 @@ namespace Game.Characters
 
         private Rigidbody body;
         private Vector3? targetPosition;
+        private bool groundContactThisStep;
 
         public float MoveSpeed
         {
@@ -26,6 +27,15 @@ namespace Game.Characters
         }
 
         public bool IsMoving => targetPosition.HasValue;
+
+        /// <summary>
+        /// True while a ground-like contact (surface normal pointing mostly
+        /// up) was detected as of the last physics step. While false,
+        /// FixedUpdate stops steering the horizontal velocity entirely - a
+        /// jump's horizontal momentum is carried as-is until landing, instead
+        /// of being overwritten or zeroed by input changes mid-air.
+        /// </summary>
+        public bool IsGrounded { get; private set; }
 
         private void Awake()
         {
@@ -46,11 +56,30 @@ namespace Game.Characters
         public void Stop()
         {
             targetPosition = null;
+
+            if (!IsGrounded)
+            {
+                // Airborne - preserve momentum from takeoff (see IsGrounded).
+                return;
+            }
+
             body.linearVelocity = new Vector3(0f, body.linearVelocity.y, 0f);
         }
 
         private void FixedUpdate()
         {
+            // Reflects contacts detected during the PREVIOUS physics step,
+            // one FixedUpdate late - collision callbacks fire after
+            // simulation, not before this method runs. groundContactThisStep
+            // is reset here and re-armed by OnCollisionEnter/Stay below.
+            IsGrounded = groundContactThisStep;
+            groundContactThisStep = false;
+
+            if (!IsGrounded)
+            {
+                return;
+            }
+
             if (!targetPosition.HasValue)
             {
                 return;
@@ -71,6 +100,26 @@ namespace Game.Characters
 
             Quaternion targetRotation = Quaternion.LookRotation(direction);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, rotationSpeedDegrees * Time.fixedDeltaTime);
+        }
+
+        private void OnCollisionEnter(Collision collision) => EvaluateGroundContact(collision);
+        private void OnCollisionStay(Collision collision) => EvaluateGroundContact(collision);
+
+        private void EvaluateGroundContact(Collision collision)
+        {
+            if (groundContactThisStep)
+            {
+                return;
+            }
+
+            foreach (var contact in collision.contacts)
+            {
+                if (contact.normal.y > 0.5f)
+                {
+                    groundContactThisStep = true;
+                    return;
+                }
+            }
         }
     }
 }

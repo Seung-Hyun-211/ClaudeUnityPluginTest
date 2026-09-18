@@ -72,6 +72,11 @@ namespace Game.Characters.Player
 
         public bool TryJump()
         {
+            if (!motor.IsGrounded)
+            {
+                return false;
+            }
+
             if (!stamina.TryConsume(actionCosts.GetCost(PlayerActionType.Jump)))
             {
                 return false;
