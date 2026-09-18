@@ -4,6 +4,7 @@ using Game.Characters;
 using Game.Items.Equipment;
 using Game.QuickSlot;
 using Game.Weapons;
+using Game.SceneFlow;
 
 namespace Game.Characters.Player
 {
@@ -37,6 +38,14 @@ namespace Game.Characters.Player
         private void Awake()
         {
             faction.SetFaction(Game.Characters.Faction.Player);
+
+            // Null when this scene is entered directly without a boot-scene
+            // PlayerRuntimeContext (e.g. isolated testing) - real play always
+            // goes through Boot first, so this guard only affects that case.
+            if (PlayerRuntimeContext.Instance != null)
+            {
+                PlayerRuntimeContext.Instance.BindActivePlayer(gameObject);
+            }
         }
 
         public void OnMoveInput(Vector2 input)

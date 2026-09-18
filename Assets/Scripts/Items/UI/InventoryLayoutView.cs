@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Items.Equipment;
 using Game.Player;
+using Game.Items;
 
 namespace Game.Items.UI
 {
@@ -43,7 +44,8 @@ namespace Game.Items.UI
 
         private void OnEquipmentSlotClicked(ContainerCategory category)
         {
-            equipmentController.Unequip(category);
+            var evicted = equipmentController.Unequip(category);
+            WorldItemSpawner.SpawnAll(evicted, playerVitals.transform.position);
         }
 
         private void RefreshEquipmentSlot(ContainerCategory category)

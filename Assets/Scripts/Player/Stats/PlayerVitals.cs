@@ -12,6 +12,13 @@ namespace Game.Player
         public IReadOnlyStat Hunger => hunger;
         public IReadOnlyStat Thirst => thirst;
 
+        /// <summary>Raw restore for save/load - bypasses decay, matches PlayerStat.SetCurrent's clamping.</summary>
+        public void RestoreVitals(float hungerCurrent, float thirstCurrent)
+        {
+            hunger.SetCurrent(hungerCurrent);
+            thirst.SetCurrent(thirstCurrent);
+        }
+
         private void Update()
         {
             hunger.Add(-hungerDecayPerSecond * Time.deltaTime);

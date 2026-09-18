@@ -68,5 +68,16 @@ namespace Game.Combat
             currentHealth = maxHealth;
             Changed?.Invoke();
         }
+
+        /// <summary>
+        /// Raw restore for save/load — sets current health without firing
+        /// Damaged/Died, since a load isn't a gameplay damage event.
+        /// </summary>
+        public void RestoreHealth(float value)
+        {
+            currentHealth = Mathf.Clamp(value, 0f, maxHealth);
+            isAlive = currentHealth > 0f;
+            Changed?.Invoke();
+        }
     }
 }
