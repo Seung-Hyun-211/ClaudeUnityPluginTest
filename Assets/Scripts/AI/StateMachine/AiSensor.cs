@@ -22,6 +22,12 @@ namespace Game.AI
         public float DetectionRadius => detectionRadius;
         public IDamageable DetectedTarget { get; private set; }
 
+        /// <summary>Applies a data-driven detection radius (e.g. Game.Characters.Enemy.EnemyData).</summary>
+        public void SetDetectionRadius(float value)
+        {
+            detectionRadius = Mathf.Max(0f, value);
+        }
+
         private void Awake()
         {
             selfFaction = GetComponent<FactionMember>();

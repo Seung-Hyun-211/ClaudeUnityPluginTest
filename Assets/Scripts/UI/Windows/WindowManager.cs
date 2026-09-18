@@ -36,6 +36,28 @@ namespace Game.UI.Windows
         public string CurrentFullScreenId { get; private set; }
         public event Action FullScreenChanged;
 
+        /// <summary>
+        /// True while any full-screen window or popup is covering the game view.
+        /// Gameplay input handlers (quickslot/weapon-switch/interact) gate on
+        /// this so a UI screen being open behaves like the Player action map
+        /// being off (see design-conflict-review.md #3) without an actual
+        /// Input System action map split.
+        /// </summary>
+        public bool IsAnyWindowOpen => currentFullScreen != null || popupStack.Count > 0;
+
+        /// <summary>Closes whatever is currently on top: the top popup if any, else the full-screen window.</summary>
+        public void CloseTopMost()
+        {
+            if (popupStack.Count > 0)
+            {
+                PopTopPopup();
+            }
+            else
+            {
+                CloseFullScreen();
+            }
+        }
+
         private void Awake()
         {
             obscurer = backgroundObscurerSource as IBackgroundObscurer;

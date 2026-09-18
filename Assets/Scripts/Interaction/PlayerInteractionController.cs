@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.UI.Windows;
 
 namespace Game.Interaction
 {
@@ -12,10 +13,13 @@ namespace Game.Interaction
     {
         [SerializeField] private InteractionDetector detector;
         [SerializeField] private Key interactKey = Key.F;
+        [SerializeField] private WindowManager windowManager;
 
         private void Update()
         {
-            if (Keyboard.current == null || !Keyboard.current[interactKey].wasPressedThisFrame)
+            // design-conflict-review.md #3: UI가 열려 있으면 F로 상호작용이
+            // 발동하면 안 된다.
+            if (Keyboard.current == null || !Keyboard.current[interactKey].wasPressedThisFrame || windowManager.IsAnyWindowOpen)
             {
                 return;
             }

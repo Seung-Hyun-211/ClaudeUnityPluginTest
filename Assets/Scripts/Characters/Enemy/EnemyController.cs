@@ -55,16 +55,8 @@ namespace Game.Characters.Enemy
 
             faction.SetFaction(Game.Characters.Faction.Hostile);
             motor.MoveSpeed = data.MoveSpeed;
-
-            // NOTE (see this track's final report for detail): HealthComponent
-            // and AiSensor currently expose no public API to override
-            // maxHealth/detectionRadius at runtime - both are private
-            // SerializeField-only with no setter, so EnemyData.MaxHealth and
-            // EnemyData.DetectionRadius cannot be applied here without
-            // modifying Combat/AI files that are out of scope for this track.
-            // Until HealthComponent/AiSensor grow that hook, set the
-            // prefab's own HealthComponent/AiSensor inspector values to match
-            // the EnemyData asset being used.
+            health.SetMaxHealth(data.MaxHealth);
+            sensor.SetDetectionRadius(data.DetectionRadius);
 
             var context = new AiContext(gameObject, sensor, stateMachine);
             IAiBrain brain = CreateBrain(data);

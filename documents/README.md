@@ -4,6 +4,8 @@
 
 게임 자체의 **기획 문서**(장르/조작/UX/수치 밸런싱)는 별도로 [`Docs/`](../Docs) 폴더에 있습니다(디자인 브랜치에서 병합). 두 폴더는 관점이 다르므로 서로 대체하지 않으며, 겹치는 부분의 정합성은 [design-conflict-review.md](design-conflict-review.md)에서 검증합니다.
 
+실제 코드가 어떻게 나뉘어 있고 모듈 간 의존 관계가 어떤 그래프를 이루는지는 [codebase-map.md](codebase-map.md)에 별도로 정리되어 있습니다 — 이 문서는 사람의 가독성보다 코드 파악 속도를 우선한 기계 판독용 인덱스입니다.
+
 ### 아이템 / 인벤토리
 
 - [item-system.md](item-system.md) — 아이템 데이터, 플랫 인벤토리(창고형 슬롯), 3D 월드 아이템, 제작 시스템의 기초 뼈대
@@ -21,6 +23,10 @@
 - [npc-roles.md](npc-roles.md) — NPC를 전투 도움용(Companion)/마을용(Village)으로 분화, `IAiBrain`을 Enemy 전용에서 공용 프레임워크로 일반화(설계 문서만 존재)
 - [player-attributes.md](player-attributes.md) — 스태미나(달리기/점프 제한)와 지구력·힘·행운 등 기초 스탯이 각종 확률·능력치에 반영되는 구조. 구현됨
 - [hud-system.md](hud-system.md) — 1인칭/3인칭 슈팅 HUD 레이아웃(체력·방어구·무기 / 상태 / 퀵슬롯 / 나침반 / 미니맵). 나침반·미니맵이 `IWorldMarker` 레지스트리를 공유. 구현됨
+
+### 씬 / 지속성
+
+- [scene-and-persistence-system.md](scene-and-persistence-system.md) — Title/Loading(재사용)/InGameLobby/InGameCombat 씬 분리와 전환(`SceneFlowController`), 씬을 오가도 사라지면 안 되는 런타임 데이터(`PlayerRuntimeContext`), 게임을 껐다 켜도 유지되는 세이브 데이터(`ISaveDataProvider`/`SaveGameService`)를 분리해 설계. 설계만 완료
 
 ### 설계 검증
 
@@ -49,8 +55,8 @@
 | 피격 가능 인터페이스/체력/방어구 | `Assets/Scripts/Combat` | `Game.Combat` | 구현됨 |
 | 캐릭터 공통(Faction, 스탯, 이동) | `Assets/Scripts/Characters/Core` | `Game.Characters` | 구현됨 |
 | 플레이어 컨트롤러/스태미나/기초 스탯 | `Assets/Scripts/Characters/Player` | `Game.Characters.Player` | 구현됨 |
-| NPC 컨트롤러(Village/CombatHelper 공통) | `Assets/Scripts/Characters/Npc` | `Game.Characters.Npc` | 설계만 완료 |
-| Enemy 컨트롤러/데이터 | `Assets/Scripts/Characters/Enemy` | `Game.Characters.Enemy` | 설계만 완료 |
+| NPC 컨트롤러(Village/CombatHelper 공통) | `Assets/Scripts/Characters/Npc` | `Game.Characters.Npc` | 구현됨 |
+| Enemy 컨트롤러/데이터(Normal/Elite/Boss) | `Assets/Scripts/Characters/Enemy` | `Game.Characters.Enemy` | 구현됨 |
 | AI 상태 머신 프레임워크(`IAiBrain` 포함) | `Assets/Scripts/AI/StateMachine` | `Game.AI` | 구현됨 |
 | AI 구체 상태들(Idle/Patrol/Chase/Attack/Dead) | `Assets/Scripts/AI/States` | `Game.AI.States` | 구현됨 |
 | HUD 표시 제어/핫바 레이아웃/체력·방어구·무기 패널 | `Assets/Scripts/HUD` | `Game.HUD` | 구현됨 |
@@ -59,3 +65,5 @@
 | 미니맵 | `Assets/Scripts/HUD/Minimap` | `Game.HUD.Minimap` | 구현됨 |
 | 무기 시스템(총기/근접/파츠/탄약/장착/픽업/1·2·3 고정키) | `Assets/Scripts/Weapons` | `Game.Weapons` | 구현됨 |
 | 무기 슬롯 UI | `Assets/Scripts/Weapons/UI` | `Game.Weapons.UI` | 구현됨 |
+| 씬 카탈로그/전환 컨트롤러 | `Assets/Scripts/SceneFlow` | `Game.SceneFlow` | 구현됨 |
+| 세이브/로드(ISaveDataProvider) | `Assets/Scripts/Persistence` | `Game.Persistence` | 구현됨(기존 서브시스템 연동은 아직) |

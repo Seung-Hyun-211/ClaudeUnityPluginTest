@@ -57,5 +57,16 @@ namespace Game.Combat
             currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
             Changed?.Invoke();
         }
+
+        /// <summary>
+        /// Applies a data-driven max health (e.g. Game.Characters.Enemy.EnemyData)
+        /// and fully heals to it — an initialization call, not a gameplay heal.
+        /// </summary>
+        public void SetMaxHealth(float value)
+        {
+            maxHealth = Mathf.Max(1f, value);
+            currentHealth = maxHealth;
+            Changed?.Invoke();
+        }
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.UI.Windows;
 
 namespace Game.Weapons
 {
@@ -20,10 +21,13 @@ namespace Game.Weapons
         };
 
         [SerializeField] private WeaponLoadout loadout;
+        [SerializeField] private WindowManager windowManager;
 
         private void Update()
         {
-            if (Keyboard.current == null)
+            // design-conflict-review.md #3: UI가 열려 있는 동안은 무기 전환도
+            // 게임플레이 입력이므로 함께 막는다.
+            if (Keyboard.current == null || windowManager.IsAnyWindowOpen)
             {
                 return;
             }

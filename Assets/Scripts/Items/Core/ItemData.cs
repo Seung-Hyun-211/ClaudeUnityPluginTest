@@ -26,5 +26,14 @@ namespace Game.Items
 
         /// <summary>Footprint this item occupies in a shape-based grid inventory.</summary>
         public Vector2Int GridSize => new(gridWidth, gridHeight);
+
+        /// <summary>
+        /// Per-item use effect when activated from a quick slot (ItemQuickSlotEntry
+        /// forwards here). No-op by default — plain items (materials, quest
+        /// items) have nothing to do. Subclasses that ARE meant to be used
+        /// (e.g. Game.Weapons.ThrowableItemData) override this instead of
+        /// QuickSlot needing to know about every item kind (개방-폐쇄).
+        /// </summary>
+        public virtual void OnUse(GameObject user) { }
     }
 }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.UI.Windows;
 
 namespace Game.QuickSlot
 {
@@ -22,6 +23,7 @@ namespace Game.QuickSlot
 
         [SerializeField] private MonoBehaviour quickSlotControllerSource;
         [SerializeField] private GameObject user;
+        [SerializeField] private WindowManager windowManager;
 
         private IQuickSlotController controller;
 
@@ -36,7 +38,10 @@ namespace Game.QuickSlot
 
         private void Update()
         {
-            if (controller == null || Keyboard.current == null)
+            // 인벤토리/설정 등 전체화면 창이나 팝업이 열려 있으면 Player 입력을
+            // 죽인다(design-conflict-review.md #3 — 별도 Input Action Map 전환
+            // 없이 동일한 효과를 낸다).
+            if (controller == null || Keyboard.current == null || windowManager.IsAnyWindowOpen)
             {
                 return;
             }

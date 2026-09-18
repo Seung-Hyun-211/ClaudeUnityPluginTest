@@ -4,9 +4,10 @@ using Game.Items;
 namespace Game.QuickSlot
 {
     /// <summary>
-    /// Wraps an item so it can occupy a quick slot. Per-item use effects
-    /// (consume, quick-equip, ...) are a follow-up — this only satisfies the
-    /// slot contract so items and skills can share the same hotbar.
+    /// Wraps an item so it can occupy a quick slot. The actual use effect is
+    /// the item's own responsibility (ItemData.OnUse) — this entry only
+    /// satisfies the slot contract so items and skills can share the same
+    /// hotbar, and never needs to change when a new item behaviour is added.
     /// </summary>
     public class ItemQuickSlotEntry : IQuickSlottable
     {
@@ -22,7 +23,7 @@ namespace Game.QuickSlot
 
         public void Use(QuickSlotUseContext context)
         {
-            // TODO: 아이템 종류별 사용 효과(소비, 장비 교체 등) 연결.
+            Item.OnUse(context.User);
         }
     }
 }

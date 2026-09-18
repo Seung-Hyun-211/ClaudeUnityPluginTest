@@ -8,14 +8,14 @@
 |---|---|---|---|
 | 1 | ✅ 해결됨 | 숫자키 1~4 | `1`/`2`/`3`은 무기 고정, 퀵슬롯 뱅크는 `4`~`0`(7칸)으로 축소 — 아래 1번 참고 |
 | 2 | 🟠 모델 불일치 | 무기 정확도/반동 | 우리의 스칼라 스탯 vs 기획의 Spread+Recoil 다중 파라미터 모델 |
-| 3 | 🟡 통합 공백 | 입력 모드 전환 | Player/UI 맵 배타 전환이 우리 입력 코드에 반영 안 됨 |
-| 4 | 🟡 통합 공백 | 스태미나 | 이미 있는 우리 설계(달리기/점프 게이팅)에 기획의 탈진 디버프 훅이 없음 |
+| 3 | ✅ 해결됨 | 입력 모드 전환 | `WindowManager.IsAnyWindowOpen`을 게임플레이 입력 핸들러 3종이 구독 + Escape로 닫기 — 아래 3번 참고 |
+| 4 | 🟡 통합 공백(훅만 추가) | 스태미나 | `StaminaController`에 `Exhausted`/`Recovered` 이벤트 노출 완료, 실제 디버프 발동 로직은 디버프 시스템 만들 때 구독 |
 | 5 | 🟡 통합 공백 | 부적(Talisman) 효과 | 우리 두 모디파이어 시스템(속성/무기스탯) 중 어디로 라우팅할지 미정 |
 | 6 | ⚪ 미착수 영역 | 1인칭/3인칭 시점 전환 | 코드 전무, 기획은 상세 설계 완료 |
 | 7 | ✅ 정합 확인 | Interact 키 `F` | 양쪽 독립적으로 같은 결론 |
 | 8 | ✅ 정합 확인 | 월드 마커 | hud-system.md의 설계가 퀘스트 UI의 요구를 이미 충족 |
 | 9 | ✅ 정합 확인 | 상호작용/대화/상점 진입점 | 기획 쪽 모든 문서가 우리 `IInteractable`/`DialogueInteractable` 자리를 정확히 비워둠 |
-| 10 | 🟡 부분 해결 | 무기 슬롯 개수 | 3슬롯(주/보조/근접) 유지 확정, 투척물(4번째) 도입 여부는 여전히 열려 있음 |
+| 10 | ✅ 해결됨 | 무기 슬롯 개수 | 3슬롯(주/보조/근접, 키 `1`/`2`/`3`) 유지 확정. 투척물은 4번째 로드아웃 슬롯을 만들지 않고 퀵슬롯 아이템(`ThrowableItemData`)으로 처리 — 아래 10번 참고 |
 
 ---
 
@@ -33,12 +33,13 @@
 - **결론**: 우리 `WeaponStatType.Accuracy`/`RecoilControl` 필드는 이 모델을 표현할 수 없다. 파츠 모디파이어가 영향을 주는 대상을 (예를 들어) `baseSpreadHipfire`/`recoilKickVertical` 같은 **여러 파라미터**로 확장하고, `FirearmInstance` 안에 `WeaponSpreadState`/`WeaponRecoilState` 같은 프레임 단위 런타임 객체를 추가해야 한다. 이 문서 수준의 발견이라 실제 재설계는 후속 작업으로 남기고, 여기서는 "현재 구조로는 부족하다"는 사실만 기록해 둔다.
 - 참고로 기획 문서 자신도 9장에서 "1인칭/3인칭 시점별 정확도 차등이 `GetCurrentSpread`에 반영 안 됨"을 스스로 미해결 항목(`[검토 필요]`)으로 남겨뒀다 — 우리 쪽 문제만이 아니라 기획 쪽 문서 간에도 아직 안 채워진 연결고리다.
 
-## 3. 🟡 통합 공백 — 입력 모드 전환(Player ↔ UI)
+## 3. ✅ 해결됨 — 입력 모드 전환(Player ↔ UI)
 
 - **기획**: `Docs/기획문서_캐릭터조작설계.md` 2장 — 인벤토리/설정 같은 UI 화면이 열리면 `Player` 맵은 OFF, `UI` 맵이 ON으로 배타 전환된다. `Docs/기획문서_UI조작설계.md`는 `Cancel`(Esc)로 현재 UI를 닫는다.
-- **우리 현재 코드**: [`QuickSlotInputHandler`](../Assets/Scripts/QuickSlot/QuickSlotInputHandler.cs), [`PlayerInteractionController`](../Assets/Scripts/Interaction/PlayerInteractionController.cs)는 [`WindowManager`](../Assets/Scripts/UI/Windows/WindowManager.cs)의 현재 상태(전체화면/팝업이 열려 있는지)를 전혀 확인하지 않고 매 프레임 `Keyboard.current`를 무조건 읽는다.
-- **결과적으로**: 지금 상태로는 인벤토리 화면이 열려 있어도 숫자키를 누르면 퀵슬롯이 활성화되고 F를 누르면 상호작용이 발동한다 — 기획 문서가 요구하는 "UI가 열리면 게임플레이 입력은 죽는다"는 원칙과 어긋난다.
-- **필요한 조치**(후속 과제로 남김, 이번엔 코드 변경 안 함): `QuickSlotInputHandler`/`PlayerInteractionController`에 `WindowManager` 참조를 추가하고, `CurrentFullScreenId != null`이거나 팝업이 열려 있으면 입력을 무시하도록 가드. 또한 [window-system.md](window-system.md)가 스코프 밖으로 남겨뒀던 "Escape로 현재 창 닫기"를 이 기회에 함께 구현하면 자연스럽다(`Docs/기획문서_UI조작설계.md`의 `Cancel` 액션과 정확히 대응).
+- **문제였던 것**: [`QuickSlotInputHandler`](../Assets/Scripts/QuickSlot/QuickSlotInputHandler.cs), [`PlayerInteractionController`](../Assets/Scripts/Interaction/PlayerInteractionController.cs), [`WeaponLoadoutInputHandler`](../Assets/Scripts/Weapons/WeaponLoadoutInputHandler.cs) 셋 다 [`WindowManager`](../Assets/Scripts/UI/Windows/WindowManager.cs)의 상태(전체화면/팝업이 열려 있는지)를 전혀 확인하지 않고 매 프레임 `Keyboard.current`를 무조건 읽었다 — 인벤토리가 열려 있어도 숫자키로 퀵슬롯/무기가 바뀌고 F로 상호작용이 발동했다.
+- **결정**: 실제 Input System Action Map 전환(Player/UI 맵 분리) 대신, `WindowManager`에 `IsAnyWindowOpen`(전체화면 또는 팝업이 하나라도 열려 있는지) 하나만 노출하고 3개 입력 핸들러가 이를 구독해 게이팅한다 — 결과는 기획이 요구하는 것과 동일(UI가 열리면 게임플레이 입력 무시)하지만 Action Map 자산을 새로 안 만들어도 되는 더 단순한 구현(KISS). 실제로 Player/UI 맵을 물리적으로 분리해야 할 필요가 생기면(예: 게임패드 지원) 이 게이트를 Action Map 활성화/비활성화로 교체하면 된다.
+- **반영된 코드**: `WindowManager.IsAnyWindowOpen`/`CloseTopMost()` 추가. `QuickSlotInputHandler`/`PlayerInteractionController`/`WeaponLoadoutInputHandler`가 `windowManager.IsAnyWindowOpen`일 때 `Update()` 초반에 즉시 리턴. 신규 [`WindowCloseInputHandler`](../Assets/Scripts/UI/Windows/WindowCloseInputHandler.cs)가 Escape로 `WindowManager.CloseTopMost()`(팝업 우선, 없으면 전체화면)를 호출 — `Docs/기획문서_UI조작설계.md`의 `Cancel` 액션에 대응.
+- **참고**: 이 변경으로 `Game.Interaction`이 처음으로 `Game.UI.Windows`에 의존하게 됐다(`codebase-map.md`의 "완전 격리 모듈" 목록에서 `Interaction` 제외 필요).
 
 ## 4. 🟡 통합 공백 — 스태미나
 
@@ -62,16 +63,18 @@
 - **월드 마커**: `Docs/기획문서_퀘스트UI설계.md`가 후속 과제로 남긴 "월드/미니맵 퀘스트 마커 UI"는 [hud-system.md](hud-system.md)의 `IWorldMarker`/`WorldMarkerRegistry`가 이미 정확히 그 용도로 설계되어 있다 — 퀘스트 시스템이 만들어지면 마커를 `Register()`만 호출하면 된다.
 - **상호작용 진입점**: `Docs/기획문서_대화시네마틱구조설계.md`, `_퀘스트UI설계.md`, `_상점시스템설계.md`, `_부적제단시스템설계.md` 전부 "NPC/오브젝트 상호작용 트리거 자체(감지 범위, `Interact`(F) 판정)는 별도 문서에서 다룬다"고 명시적으로 자리를 비워뒀다 — 그 자리가 정확히 우리 [interaction-system.md](interaction-system.md)/`IInteractable`/`InteractionDetector`다. 대화·상점·제단 UI를 열 때 시작점이 될 `DialogueInteractable`(현재 TODO 스텁)도 이미 있다.
 
-## 10. 🟡 부분 해결 — 무기 슬롯 개수(3 vs 4)
+## 10. ✅ 해결됨 — 무기 슬롯 개수(3 vs 4)
 
 - **우리**: [weapon-system.md](weapon-system.md)의 `WeaponLoadout` = 주무기/보조무기/근접 **3슬롯**, 키 `1`/`2`/`3` 고정(1번 항목에서 확정).
 - **기획**: `Docs/기획문서_시점전환슈팅게임.md` 2.2절 = 주무기/보조무기/근접/투척물 **4슬롯**(투척물=수류탄류).
-- 1번 항목 결정으로 **주무기/보조무기/근접 3슬롯이 키 `1`/`2`/`3`에 고정된다는 것은 확정**됐다. 다만 4번째인 투척물을 어디에 둘지는 아직 미정이다 — `WeaponLoadoutSlot`에 네 번째 항목을 추가해 별도 고정 키를 줄지(그러면 다시 빈 키를 찾아야 함), 아니면 "장착하고 쿨다운 관리하는 무기"가 아니라 "소모되는 소비 아이템"으로 보고 퀵슬롯(`4`~`0`)의 `IQuickSlottable` 아이템으로 둘지는 여전히 열린 결정이다.
+- **결정**(사용자 확정): `WeaponLoadoutSlot`에 4번째 항목을 추가하지 않는다. 투척물은 "장착하고 쿨다운 관리하는 무기"가 아니라 **퀵슬롯(`4`~`0`)의 `IQuickSlottable` 소비 아이템**으로 다룬다 — 즉 기획 문서의 4슬롯 요구는 로드아웃이 아니라 퀵슬롯 쪽에서 흡수한다. 이미 확정된 "무기는 `1`/`2`/`3` 고정, 그 외 어떤 것도 별도 키를 새로 갖지 않는다"는 원칙(1번 항목)을 그대로 유지 — 투척물 전용 키를 새로 만들지 않고, 플레이어가 퀵슬롯 중 원하는 칸에 배치한 키 하나로만 사용한다.
+- **반영된 코드**: [`Game.Items.ItemData.OnUse(GameObject)`](../Assets/Scripts/Items/Core/ItemData.cs) — 퀵슬롯에서 아이템이 사용될 때의 효과를 아이템 자신이 정의하는 가상 훅(기본은 no-op). [`ItemQuickSlotEntry.Use`](../Assets/Scripts/QuickSlot/ItemQuickSlotEntry.cs)는 이제 이 훅을 그대로 호출 — 새 "사용 가능한 아이템" 종류가 늘어나도 `QuickSlot` 쪽 코드는 안 바뀐다(개방-폐쇄). [`Game.Weapons.ThrowableItemData`](../Assets/Scripts/Weapons/ThrowableItemData.cs)가 `OnUse`를 오버라이드해 투사체를 던진다. `WeaponLoadoutSlot`/`WeaponLoadout`/`WeaponLoadoutInputHandler`는 변경 없음(여전히 3슬롯, 1/2/3 고정).
 
 ## 다음 단계 제안
 
 1. ~~1번(숫자키 충돌)~~ — **해결됨**(위 1번 참고).
-2. **10번(투척물 슬롯)** — 4번째 무기 슬롯을 만들지, 퀵슬롯 아이템으로 처리할지 결정 필요.
-3. **3번(입력 모드 전환)** 은 비교적 작은 작업이니 다음에 손댈 때 같이 처리하는 것을 권장(`WindowManager` 상태를 각 입력 핸들러가 확인하도록 가드 추가 + Escape 닫기).
-4. **2번(정확도/반동 모델)** 은 무기 시스템에서 가장 손이 큰 재설계라, 실제로 총기 조작감을 구현하는 단계에 들어갈 때 별도로 다시 설계하는 것을 권장.
-5. 4번(스태미나 훅), 5번(부적 라우팅)은 각각 디버프 시스템, 부적 시스템을 실제로 만들 때 자연스럽게 처리하면 된다 — 지금 당장 코드를 바꿀 필요는 없다.
+2. ~~10번(투척물 슬롯)~~ — **해결됨**(위 10번 참고, 퀵슬롯 아이템으로 확정).
+3. ~~3번(입력 모드 전환)~~ — **해결됨**(위 3번 참고).
+4. ~~4번(스태미나 훅)~~ — **해결됨**(이벤트만 노출, 위 4번 참고). 실제 탈진 디버프 로직은 디버프 시스템을 만들 때.
+5. **2번(정확도/반동 모델)** 은 무기 시스템에서 가장 손이 큰 재설계라, 실제로 총기 조작감을 구현하는 단계에 들어갈 때 별도로 다시 설계하는 것을 권장.
+6. 5번(부적 라우팅)은 부적 시스템을 실제로 만들 때 자연스럽게 처리하면 된다 — 지금 당장 코드를 바꿀 필요는 없다.
