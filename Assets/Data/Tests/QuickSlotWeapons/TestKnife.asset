@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31e41c08c693fa442a8562e32580121b, type: 3}
+  m_Name: TestKnife
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Weapons.MeleeWeaponData
+  itemId: test_knife
+  displayName: Test Knife
+  description: 
+  icon: {fileID: 0}
+  worldPrefab: {fileID: 0}
+  itemType: 0
+  maxStackSize: 1
+  gridWidth: 1
+  gridHeight: 1
+  damage: 25
+  attackRate: 1.5
+  range: 2

@@ -8,5 +8,20 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
     guid: 8c9cfa26abfee488c85f1582747f6a02
+  - enabled: 1
+    path: Assets/Scenes/Tests/SceneFlow/Boot.unity
+    guid: 37bb2306d1c6110498e29584a9630806
+  - enabled: 1
+    path: Assets/Scenes/Tests/SceneFlow/Title.unity
+    guid: d7f752c5965f4424d96631083f72afe0
+  - enabled: 1
+    path: Assets/Scenes/Tests/SceneFlow/Loading.unity
+    guid: a8707139d9ddbc14184bbcd01c79b746
+  - enabled: 1
+    path: Assets/Scenes/Tests/SceneFlow/Lobby.unity
+    guid: a40a69dbe7628314192688eb2d8ae9b6
+  - enabled: 1
+    path: Assets/Scenes/Tests/SceneFlow/Combat.unity
+    guid: 36f3ea457a4e622489168d85835966a3
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
