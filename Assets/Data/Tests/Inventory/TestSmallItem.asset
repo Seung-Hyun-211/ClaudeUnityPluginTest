@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: Small Test Item
   description: 
   icon: {fileID: 0}
-  worldPrefab: {fileID: 0}
+  worldPrefab: {fileID: 1174110254408360851, guid: f79ef501f22e5d04eaca1e353f071e9b, type: 3}
   itemType: 0
   maxStackSize: 10
   gridWidth: 1
