@@ -28,7 +28,7 @@ namespace Game.Items
             int leftover;
             if (interactor.TryGetComponent(out ContainerEquipmentController equipment))
             {
-                leftover = AddToContainers(equipment, quantity);
+                leftover = equipment.AddToContainers(item, quantity);
             }
             else if (interactor.TryGetComponent(out IInventory inventory))
             {
@@ -49,25 +49,5 @@ namespace Game.Items
             }
         }
 
-        /// <summary>
-        /// Tries pocket, then rig, then backpack. A fixed pickup priority is a
-        /// simple default; players with real container-swap needs can move
-        /// items between grids afterward from the inventory screen.
-        /// </summary>
-        private int AddToContainers(ContainerEquipmentController equipment, int amount)
-        {
-            amount = TryAddToGrid(equipment.GetGrid(ContainerCategory.Pocket), amount);
-            if (amount <= 0) return amount;
-
-            amount = TryAddToGrid(equipment.GetGrid(ContainerCategory.Rig), amount);
-            if (amount <= 0) return amount;
-
-            return TryAddToGrid(equipment.GetGrid(ContainerCategory.Backpack), amount);
-        }
-
-        private int TryAddToGrid(Game.Items.Grid.IGridInventory grid, int amount)
-        {
-            return grid != null ? grid.TryAddItem(item, amount) : amount;
-        }
     }
 }

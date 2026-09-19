@@ -29,6 +29,7 @@ namespace Game.UI.Windows
 
         private readonly Dictionary<string, IWindow> fullScreenById = new();
         private readonly List<IWindow> popupStack = new();
+        private readonly HashSet<object> inputBlockers = new();
         private IBackgroundObscurer obscurer;
         private IWindow currentFullScreen;
 
@@ -43,7 +44,15 @@ namespace Game.UI.Windows
         /// being off (see design-conflict-review.md #3) without an actual
         /// Input System action map split.
         /// </summary>
-        public bool IsAnyWindowOpen => currentFullScreen != null || popupStack.Count > 0;
+        public bool IsAnyWindowOpen => currentFullScreen != null || popupStack.Count > 0 || inputBlockers.Count > 0;
+
+        /// <summary>
+        /// Lets something that is not a window (a dialogue box) gate gameplay
+        /// input exactly like one, without being stacked, obscuring the
+        /// background, or being closable by CloseTopMost.
+        /// </summary>
+        public void AddInputBlocker(object owner) => inputBlockers.Add(owner);
+        public void RemoveInputBlocker(object owner) => inputBlockers.Remove(owner);
 
         /// <summary>Closes whatever is currently on top: the top popup if any, else the full-screen window.</summary>
         public void CloseTopMost()

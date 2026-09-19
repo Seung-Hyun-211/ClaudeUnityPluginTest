@@ -1,6 +1,7 @@
 using UnityEngine;
 using Game.Characters.Npc;
 using Game.Combat;
+using Game.Dialogue;
 using Game.Interaction;
 
 namespace Game.DebugHarness
@@ -34,7 +35,7 @@ namespace Game.DebugHarness
         {
             GUILayout.BeginArea(new Rect(10, 10, 460, 320), GUI.skin.box);
             GUILayout.Label("NPC Test Harness");
-            GUILayout.Label($"Village NPC ({villageDialogue.PromptText}) - walk up and press F. Interact() is a TODO stub (npc-roles.md/interaction-system.md), so nothing visibly happens - only the prompt appearing proves detection works.");
+            GUILayout.Label($"Village NPC ({villageDialogue.PromptText}) - has no DialogueSequence assigned in this scene, so it shows no prompt and F does nothing (its CanInteract is false); see Test_Dialogue for a working dialogue.");
 
             GUILayout.Space(8);
             GUILayout.Label($"Companion order: {companionOrders.CurrentOrder}");

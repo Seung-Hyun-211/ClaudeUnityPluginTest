@@ -1,0 +1,92 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23d0f78d59de1ca4b977cac78c8827c8, type: 3}
+  m_Name: Guard_Locked
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Dialogue.DialogueSequence
+  sequenceId: guard_locked
+  skippable: 0
+  entryNodeId: g1
+  nodes:
+  - id: g1
+    type: 0
+    speakerName: "\uACBD\uBE44\uBCD1"
+    text: "\uBA48\uCDB0\uB77C. \uC5EC\uAE30\uC11C\uBD80\uD130\uB294 \uCD9C\uC785
+      \uAE08\uC9C0\uB2E4."
+    portrait: {fileID: 0}
+    nextNodeId: g2
+    choices: []
+    condition:
+      flag: 
+      expected: 1
+    nextNodeIfFalseId: 
+    eventType: 0
+    eventParam: 
+    eventFlagValue: 1
+    eventItem: {fileID: 0}
+    eventCount: 1
+    nextNodeIfDeclinedId: 
+    duration: 0
+  - id: g2
+    type: 0
+    speakerName: "\uACBD\uBE44\uBCD1"
+    text: "\uC774 \uC0AC\uC2E4\uC740 \uC774\uC57C\uAE30\uB97C \uAC74\uB108\uB6F8
+      \uC218 \uC5C6\uB2E4. \uB05D\uAE4C\uC9C0 \uB4E4\uC5B4\uB77C."
+    portrait: {fileID: 0}
+    nextNodeId: w
+    choices: []
+    condition:
+      flag: 
+      expected: 1
+    nextNodeIfFalseId: 
+    eventType: 0
+    eventParam: 
+    eventFlagValue: 1
+    eventItem: {fileID: 0}
+    eventCount: 1
+    nextNodeIfDeclinedId: 
+    duration: 0
+  - id: w
+    type: 4
+    speakerName: 
+    text: 
+    portrait: {fileID: 0}
+    nextNodeId: g3
+    choices: []
+    condition:
+      flag: 
+      expected: 1
+    nextNodeIfFalseId: 
+    eventType: 0
+    eventParam: 
+    eventFlagValue: 1
+    eventItem: {fileID: 0}
+    eventCount: 1
+    nextNodeIfDeclinedId: 
+    duration: 1
+  - id: g3
+    type: 0
+    speakerName: "\uACBD\uBE44\uBCD1"
+    text: "...\uC54C\uACA0\uB098? \uADF8\uB7FC \uB3CC\uC544\uAC00\uB77C."
+    portrait: {fileID: 0}
+    nextNodeId: 
+    choices: []
+    condition:
+      flag: 
+      expected: 1
+    nextNodeIfFalseId: 
+    eventType: 0
+    eventParam: 
+    eventFlagValue: 1
+    eventItem: {fileID: 0}
+    eventCount: 1
+    nextNodeIfDeclinedId: 
+    duration: 0

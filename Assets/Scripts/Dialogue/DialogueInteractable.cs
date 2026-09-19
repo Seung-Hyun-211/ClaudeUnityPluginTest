@@ -1,22 +1,29 @@
 using UnityEngine;
+using Game.Interaction;
 
-namespace Game.Interaction
+namespace Game.Dialogue
 {
     /// <summary>
-    /// Minimal placeholder proving the extension point for a second, very
-    /// different interaction kind. Opening an actual dialogue UI/tree is a
-    /// follow-up (see documents/npc-roles.md).
+    /// Starts a DialogueSequence with this NPC through the scene's
+    /// DialoguePlayer. Sits next to NpcController on Village NPC prefabs; the
+    /// sequence is assigned per instance.
     /// </summary>
     public class DialogueInteractable : MonoBehaviour, IInteractable
     {
         [SerializeField] private string npcName;
+        [SerializeField] private DialogueSequence sequence;
 
         public string PromptText => $"{npcName}와 대화하기";
-        public bool CanInteract(GameObject interactor) => true;
+
+        public bool CanInteract(GameObject interactor)
+        {
+            var player = DialoguePlayer.Instance;
+            return sequence != null && player != null && !player.IsPlaying;
+        }
 
         public void Interact(GameObject interactor)
         {
-            // TODO: 대화 UI/트리 연동.
+            DialoguePlayer.Instance?.Play(sequence, interactor);
         }
     }
 }

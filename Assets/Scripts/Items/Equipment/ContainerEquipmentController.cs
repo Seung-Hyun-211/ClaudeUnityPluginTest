@@ -35,6 +35,27 @@ namespace Game.Items.Equipment
             };
         }
 
+        /// <summary>Auto-places into Pocket, then Rig, then Backpack (a fixed pickup priority).</summary>
+        /// <returns>The quantity that fit nowhere.</returns>
+        public int AddToContainers(ItemData item, int quantity)
+        {
+            foreach (var category in new[] { ContainerCategory.Pocket, ContainerCategory.Rig, ContainerCategory.Backpack })
+            {
+                var grid = GetGrid(category);
+                if (grid != null)
+                {
+                    quantity = grid.TryAddItem(item, quantity);
+                }
+
+                if (quantity <= 0)
+                {
+                    break;
+                }
+            }
+
+            return quantity;
+        }
+
         /// <returns>Stacks evicted from the old grid because they no longer fit.</returns>
         public List<ItemStack> Equip(ContainerItemData containerItem)
         {
