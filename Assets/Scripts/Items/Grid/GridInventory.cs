@@ -44,16 +44,16 @@ namespace Game.Items.Grid
             return true;
         }
 
-        public bool TryPlaceAt(ItemData item, int quantity, Vector2Int origin, out int leftover)
+        public bool TryPlaceAt(ItemData item, int quantity, Vector2Int origin, out int leftover, bool rotated = false)
         {
             leftover = quantity;
-            if (item == null || quantity <= 0 || !IsCellFree(origin, item.GridSize))
+            if (item == null || quantity <= 0 || !IsCellFree(origin, PlacedItem.GetFootprint(item, rotated)))
             {
                 return false;
             }
 
             int amount = item.IsStackable ? Math.Min(quantity, item.MaxStackSize) : 1;
-            placedItems.Add(new PlacedItem(new ItemStack(item, amount), origin));
+            placedItems.Add(new PlacedItem(new ItemStack(item, amount), origin, rotated));
             leftover = quantity - amount;
 
             GridChanged?.Invoke();
@@ -85,13 +85,22 @@ namespace Game.Items.Grid
 
             while (quantity > 0)
             {
-                Vector2Int? freeOrigin = FindFreeOrigin(item.GridSize);
+                bool rotated = false;
+                Vector2Int? freeOrigin = FindFreeOrigin(PlacedItem.GetFootprint(item, false));
+                if (freeOrigin == null)
+                {
+                    // Auto-placement may turn the item 90 degrees when that
+                    // is the only way it fits.
+                    rotated = true;
+                    freeOrigin = FindFreeOrigin(PlacedItem.GetFootprint(item, true));
+                }
+
                 if (freeOrigin == null)
                 {
                     break;
                 }
 
-                TryPlaceAt(item, quantity, freeOrigin.Value, out int leftover);
+                TryPlaceAt(item, quantity, freeOrigin.Value, out int leftover, rotated);
                 quantity = leftover;
             }
 

@@ -16,7 +16,7 @@ namespace Game.Items.Grid
         event Action GridChanged;
 
         bool IsCellFree(Vector2Int origin, Vector2Int footprint);
-        bool TryPlaceAt(ItemData item, int quantity, Vector2Int origin, out int leftover);
+        bool TryPlaceAt(ItemData item, int quantity, Vector2Int origin, out int leftover, bool rotated = false);
 
         /// <returns>The leftover quantity that did not fit anywhere.</returns>
         int TryAddItem(ItemData item, int quantity);

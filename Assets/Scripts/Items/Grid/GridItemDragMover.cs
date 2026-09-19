@@ -12,7 +12,8 @@ namespace Game.Items.Grid
     /// </summary>
     public static class GridItemDragMover
     {
-        public static void Move(IGridInventory sourceGrid, PlacedItem placedItem, IGridInventory targetGrid, Vector2Int targetOrigin)
+        /// <param name="rotated">Orientation chosen while dragging (R key); the snap-back path restores the item's ORIGINAL orientation instead.</param>
+        public static void Move(IGridInventory sourceGrid, PlacedItem placedItem, IGridInventory targetGrid, Vector2Int targetOrigin, bool rotated)
         {
             if (!sourceGrid.RemoveItem(placedItem))
             {
@@ -22,7 +23,7 @@ namespace Game.Items.Grid
             var item = placedItem.Stack.Item;
             int remaining = placedItem.Stack.Quantity;
 
-            if (targetGrid.TryPlaceAt(item, remaining, targetOrigin, out int leftoverAfterExact))
+            if (targetGrid.TryPlaceAt(item, remaining, targetOrigin, out int leftoverAfterExact, rotated))
             {
                 remaining = leftoverAfterExact;
             }
@@ -39,7 +40,7 @@ namespace Game.Items.Grid
 
             // Nothing fit anywhere in the target grid - snap back to where
             // it came from, preferring its exact original cell.
-            if (sourceGrid.TryPlaceAt(item, remaining, placedItem.Origin, out int leftoverBack))
+            if (sourceGrid.TryPlaceAt(item, remaining, placedItem.Origin, out int leftoverBack, placedItem.IsRotated))
             {
                 remaining = leftoverBack;
             }

@@ -25,6 +25,7 @@ namespace Game.Items.UI
         private IGridInventory grid;
         private readonly List<GridItemUIView> spawnedItemViews = new();
         private bool started;
+        private RectTransform dropPreview;
 
         private void Awake()
         {
@@ -150,16 +151,101 @@ namespace Game.Items.UI
                 return;
             }
 
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(cellContainer, eventData.position, eventData.pressEventCamera, out Vector2 localPoint))
+            if (!TryResolveOrigin(draggedView.DragTopLeftScreen, out Vector2Int targetOrigin))
             {
                 return;
             }
 
-            var targetOrigin = new Vector2Int(
-                Mathf.FloorToInt(localPoint.x / cellSize),
-                Mathf.FloorToInt(-localPoint.y / cellSize));
+            HideDropPreview();
+            GridItemDragMover.Move(draggedView.SourceGrid, draggedView.Placed, grid, targetOrigin, draggedView.DragRotated);
+        }
 
-            GridItemDragMover.Move(draggedView.SourceGrid, draggedView.Placed, grid, targetOrigin);
+        /// <summary>
+        /// Outlines where the dragged item would land: green when the exact
+        /// cells are free (the item's own current cells count as free), red
+        /// when they aren't - a red drop still falls back to auto-placement.
+        /// </summary>
+        public void ShowDropPreview(GridItemUIView dragged)
+        {
+            if (grid == null || !TryResolveOrigin(dragged.DragTopLeftScreen, out Vector2Int origin))
+            {
+                HideDropPreview();
+                return;
+            }
+
+            var footprint = PlacedItem.GetFootprint(dragged.Placed.Stack.Item, dragged.DragRotated);
+            bool fits = FitsExactly(origin, footprint, dragged.Placed);
+
+            if (dropPreview == null)
+            {
+                var go = new GameObject("DropPreview", typeof(RectTransform), typeof(CanvasRenderer), typeof(UnityEngine.UI.Image));
+                dropPreview = (RectTransform)go.transform;
+                dropPreview.SetParent(itemContainer, false);
+                dropPreview.anchorMin = new Vector2(0f, 1f);
+                dropPreview.anchorMax = new Vector2(0f, 1f);
+                dropPreview.pivot = new Vector2(0f, 1f);
+                go.GetComponent<UnityEngine.UI.Image>().raycastTarget = false;
+            }
+
+            dropPreview.SetAsLastSibling();
+            dropPreview.gameObject.SetActive(true);
+            dropPreview.anchoredPosition = new Vector2(origin.x * cellSize, -origin.y * cellSize);
+            dropPreview.sizeDelta = new Vector2(footprint.x * cellSize, footprint.y * cellSize);
+            dropPreview.GetComponent<UnityEngine.UI.Image>().color = fits
+                ? new Color(0.3f, 1f, 0.3f, 0.4f)
+                : new Color(1f, 0.3f, 0.3f, 0.4f);
+        }
+
+        public void HideDropPreview()
+        {
+            if (dropPreview != null)
+            {
+                dropPreview.gameObject.SetActive(false);
+            }
+        }
+
+        // The icon's top-left corner snaps to the NEAREST cell, so the cell a
+        // drop lands in is the one the icon visibly overlaps most.
+        private bool TryResolveOrigin(Vector2 screenTopLeft, out Vector2Int origin)
+        {
+            origin = default;
+            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(cellContainer, screenTopLeft, null, out Vector2 localPoint))
+            {
+                return false;
+            }
+
+            origin = new Vector2Int(
+                Mathf.RoundToInt(localPoint.x / cellSize),
+                Mathf.RoundToInt(-localPoint.y / cellSize));
+            return true;
+        }
+
+        private bool FitsExactly(Vector2Int origin, Vector2Int footprint, PlacedItem ignored)
+        {
+            var shape = grid.Shape;
+            if (shape == null)
+            {
+                return false;
+            }
+
+            for (int x = origin.x; x < origin.x + footprint.x; x++)
+            {
+                for (int y = origin.y; y < origin.y + footprint.y; y++)
+                {
+                    if (!shape.IsCellUsable(x, y))
+                    {
+                        return false;
+                    }
+
+                    var occupant = grid.GetItemAt(new Vector2Int(x, y));
+                    if (occupant != null && occupant != ignored)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
     }
 }
