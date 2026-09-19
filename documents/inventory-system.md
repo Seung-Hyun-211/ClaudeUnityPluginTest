@@ -95,7 +95,7 @@ graph LR
 ## 월드 아이템 연동 — `Assets/Scripts/Items/World`
 
 - **`WorldItem`** — `Interact` 시 상호작용자에게 `ContainerEquipmentController`가 있으면 Pocket → Rig → Backpack 순으로 그리드에 넣고(없으면 기존 플랫 `IInventory`로 폴백). 다 못 넣으면 남은 수량을 유지한 채 월드에 남는다. `SetStack(item, quantity)`로 스폰 직후 내용을 채운다.
-- **`WorldItemSpawner`** — (현재 구현; [world-item-factory.md](world-item-factory.md)에서 `IWorldItemFactory`로 대체할 설계가 있음) `ItemData.WorldPrefab`을 인스턴스화. `Equip`/`Unequip`(`SetShape`)으로 밀려난 스택이나 인벤토리에서 버린 아이템을 월드에 떨군다(`InventoryLayoutView`, 테스트 하니스가 호출). `WorldPrefab`이 비어 있으면 경고만 남기고 건너뛴다. 범용 프리팹은 `Assets/Prefabs/Items/WorldItemPickup.prefab`.
+- **`WorldItemFactory`**(구 `WorldItemSpawner` 대체, [world-item-factory.md](world-item-factory.md)) — 아이템을 월드에 만드는 단일 진입점. `ItemData.WorldPrefab`(없으면 기본 큐브)을 인스턴스화하고 여러 개는 흩뿌려 지면에 놓는다. `Equip`/`Unequip`(`SetShape`)으로 밀려난 스택이나 인벤토리에서 버린 아이템을 월드에 떨군다(`InventoryLayoutView`, 테스트 하니스가 호출). `WorldPrefab`이 비어 있으면 경고만 남기고 건너뛴다. 범용 프리팹은 `Assets/Prefabs/Items/WorldItemPickup.prefab`.
 
 ## 테스트 씬
 

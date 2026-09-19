@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.Interaction;
+using Game.Items;
 
 namespace Game.Weapons
 {
@@ -14,8 +15,6 @@ namespace Game.Weapons
     [RequireComponent(typeof(Collider))]
     public class WeaponPickup : MonoBehaviour, IInteractable
     {
-        [SerializeField] private WeaponPickup dropPrefab;
-
         private IWeapon weapon;
 
         public void Initialize(IWeapon weaponInstance)
@@ -41,10 +40,9 @@ namespace Game.Weapons
                 _ => null
             };
 
-            if (replaced != null && dropPrefab != null)
+            if (replaced != null)
             {
-                var dropped = Instantiate(dropPrefab, transform.position, transform.rotation);
-                dropped.Initialize(replaced);
+                WorldItemFactory.Instance?.Spawn(new WorldSpawnRequest(replaced.Item, 1, replaced), transform.position);
             }
 
             Destroy(gameObject);

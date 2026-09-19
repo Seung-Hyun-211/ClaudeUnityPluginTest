@@ -35,7 +35,7 @@ namespace Game.Dialogue
 
             if (leftover > 0)
             {
-                WorldItemSpawner.Spawn(new ItemStack(node.eventItem, leftover), interactor.transform.position);
+                WorldItemFactory.Instance.Spawn(new WorldSpawnRequest(node.eventItem, leftover), interactor.transform.position);
             }
 
             onCompleted(true);

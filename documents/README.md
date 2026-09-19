@@ -11,7 +11,7 @@
 - [item-system.md](item-system.md) — 아이템 데이터, 플랫 인벤토리(창고형 슬롯), 3D 월드 아이템, 제작 시스템의 기초 뼈대
 - [inventory-system.md](inventory-system.md) — pocket/rig/backpack 등 장비에 따라 크기·모양이 달라지는 그리드 인벤토리, 장비 슬롯, 플레이어 상태(수분/허기), 인벤토리 화면 UI(우측 Rig/Pocket/Backpack 스크롤 스택 포함)
 - [quickslot-and-skills.md](quickslot-and-skills.md) — 아이템과 스킬을 함께 담는 `IQuickSlottable` 퀵슬롯(뱅크 2개 × 7칸 = 14칸, 키 `4`~`0`, `` ` `` 로 스왑 — `1`/`2`/`3`은 무기 전용 고정 키라 제외), 확장 가능한 스킬(`SkillData`) 뼈대
-- [world-item-factory.md](world-item-factory.md) — 아이템/무기를 월드 오브젝트로 만드는 경로를 `IWorldItemFactory` 하나로 모으는 설계(설계만 완료, 미구현): 종류별 스포너 등록, 프리팹 없을 때 기본 표현, 드롭 흩뿌리기·바닥 스냅, `Items`→`Weapons` 순환을 피하는 방향 역전 + 기존 문서와의 충돌 검토
+- [world-item-factory.md](world-item-factory.md) — 아이템/무기를 월드 오브젝트로 만드는 경로를 `WorldItemFactory` 하나로 모음(구현됨): 종류별 스포너 등록, 프리팹 없을 때 기본 표현, 드롭 흩뿌리기·바닥 스냅, `Items`→`Weapons` 순환을 피하는 방향 역전 + 기존 문서와의 충돌 검토
 - [interaction-system.md](interaction-system.md) — 문 열기/대화하기 등 "키 입력으로 트리거되는 동작"을 `IInteractable` 하나로 묶고, 감지(`InteractionDetector`)·입력·실행을 분리해 새 상호작용 종류를 계속 추가할 수 있게 설계
 - [window-system.md](window-system.md) — 인벤토리/설정/맵/임무 확인 같은 전체화면 창을 `FullScreenWindowEntry` 카탈로그로 등록해 관리(상호 배타, 새 종류는 카탈로그에 항목만 추가), 퍼즐/이벤트를 띄우는 팝업(스택)도 `WindowManager` 하나로 통합
 - [weapon-system.md](weapon-system.md) — 총기 2정+근접무기 1개 장착(`WeaponLoadout`), 파츠 모딩(`WeaponPartData`가 곧 인벤토리 아이템), 탄약→탄창 삽탄→격발 파이프라인, `IInteractable` 재사용으로 적도 무기를 줍고 즉시 쓸 수 있는 `WeaponPickup`

@@ -145,7 +145,7 @@ graph LR
 
 - `CanInteract(interactor)`는 `interactor.GetComponent<WeaponLoadout>() != null`만 확인한다 — **플레이어인지 Enemy인지 전혀 구분하지 않는다.** `WeaponLoadout`을 붙인 대상이면 누구든 주워서 쓸 수 있다는 요구가 이 한 줄로 만족된다.
 - `Interact()`가 장착시키면서 밀려난 무기가 있으면(`EquipFirearm`/`EquipMelee`의 반환값), 그 자리에 `dropPrefab`으로 새 `WeaponPickup`을 만들어 자동으로 떨어뜨린다 — 무기를 교체했다고 기존에 들고 있던 무기가 사라지지 않는다.
-  - **변경 예정**: `dropPrefab`을 직접 `Instantiate`하는 대신 [world-item-factory.md](world-item-factory.md)의 `IWorldItemFactory`로 떨어뜨리고 `dropPrefab` 필드는 삭제한다(무기 쪽 `WeaponWorldSpawner`가 `WeaponPickup` 생성을 맡음). 아래 "사망한 소지자 → 드롭" 다이어그램은 아직 코드가 없다.
+  - **변경됨(2026-09-19)**: `dropPrefab` 필드는 삭제됐고 밀려난 무기는 [world-item-factory.md](world-item-factory.md)의 `WorldItemFactory`로 떨어뜨린다(`WeaponWorldSpawner`가 `WeaponPickup` 생성을 맡고 시작 시 자동 등록됨). 무기 데이터만 넘기면 파츠·탄창 없는 기본 인스턴스가 생긴다. 아래 "사망한 소지자 → 드롭" 다이어그램은 아직 코드가 없다.
 
 ## 확장 시나리오
 

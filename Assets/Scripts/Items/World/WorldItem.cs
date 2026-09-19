@@ -16,7 +16,7 @@ namespace Game.Items
         public string PromptText => $"{item.DisplayName} 줍기";
         public bool CanInteract(GameObject interactor) => true;
 
-        /// <summary>Configures a freshly instantiated world item (see WorldItemSpawner).</summary>
+        /// <summary>Configures a freshly instantiated world item (see WorldItemFactory).</summary>
         public void SetStack(ItemData newItem, int newQuantity)
         {
             item = newItem;

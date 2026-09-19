@@ -1,8 +1,8 @@
-# 월드 아이템 팩토리 (설계 — 미구현)
+# 월드 아이템 팩토리
 
-아이템을 월드 오브젝트로 만드는 경로를 한곳으로 모으는 설계. 상태: **설계만 완료, 코드는 아직 없다.** 다른 문서·코드와의 충돌 검토 결과는 마지막 절과 [design-conflict-review.md](design-conflict-review.md) #11에 있다.
+아이템을 월드 오브젝트로 만드는 경로를 한곳으로 모으는 설계와 구현(2026-09-19, `Assets/Scripts/Items/World`, `Assets/Scripts/Weapons/WeaponWorldSpawner.cs`). 다른 문서·코드와의 충돌 검토 결과는 마지막 절과 [design-conflict-review.md](design-conflict-review.md) #11에 있다.
 
-## 1. 현황과 문제
+## 1. 구현 전 현황과 문제 (해결됨)
 
 | 경로 | 위치 | 하는 일 |
 |---|---|---|
@@ -87,12 +87,13 @@ namespace Game.Items
 - `CanSpawn`: `request.State is IWeapon` 또는 `request.Item is WeaponItemData`.
 - 상태(`IWeapon`)가 있으면 그 인스턴스를 그대로, 없으면 데이터에서 **기본 인스턴스**(`new FirearmInstance(FirearmData)` / `new MeleeWeaponInstance(MeleeWeaponData)`: 파츠 없음, 탄창 없음)를 만들어 `WeaponPickup`을 생성하고 `Initialize(weapon)`.
 - 프리팹은 `item.WorldPrefab`(그 안에 `WeaponPickup`이 있어야 함), 없으면 기본 표현 + `WeaponPickup`.
-- `WeaponPickup.dropPrefab` 필드는 삭제되고, 교체돼 나온 무기는 `IWorldItemFactory.Spawn`으로 떨어뜨린다. 등록은 씬의 무기 시스템 조립 지점(작은 설치용 컴포넌트)에서 한다.
+- `WeaponPickup.dropPrefab` 필드는 삭제되고, 교체돼 나온 무기는 팩토리 `Spawn`으로 떨어뜨린다.
+- **등록은 씬 배선 없이 자동**: `WeaponWorldSpawnerRegistration`이 `[RuntimeInitializeOnLoadMethod(BeforeSceneLoad)]`로 `WorldItemFactory.RegisterGlobalSpawner`를 호출하고, 이미 있는 팩토리와 나중에 만들어지는 팩토리 모두에 등록된다(초안의 "설치용 컴포넌트"보다 단순 — 씬마다 붙일 필요가 없다). 정적 목록은 `SubsystemRegistration`에서 초기화되어 Domain Reload 없이 Play를 반복해도 중복되지 않는다.
 
 ### 드롭 위치 (`DropPlacement`)
 
 - **흩뿌리기**: `SpawnAll`이 중심 주변에 황금각 나선으로 오프셋을 준다(1개면 중심 그대로). 순수 함수라 EditMode 테스트가 가능하다.
-- **바닥 스냅**: 위쪽에서 아래로 레이캐스트해 지면에 붙이고 오브젝트 절반 높이만큼 띄운다. 지면이 없으면 요청 위치를 그대로 쓴다. 지면 레이어 마스크는 팩토리 설정이며 **아이템과 캐릭터 레이어는 제외**한다(아이템 위에 아이템이 얹히지 않게).
+- **바닥 스냅**: 요청 위치 위쪽(기본 1m)에서 아래로 레이캐스트해 오브젝트의 가장 낮은 점이 지면에 닿도록 옮긴다. 지면이 없으면 요청 위치를 그대로 쓴다. **트리거 콜라이더, `Rigidbody`가 있는 것(캐릭터), `IInteractable`이 있는 것(다른 픽업·NPC·문)은 지면으로 치지 않는다** — 레이어 설정과 무관하게 아이템 위에 아이템이, 사람 머리 위에 아이템이 얹히지 않는다(이 프로젝트는 아직 레이어를 나누지 않아 마스크만으로는 못 거른다). 마스크는 팩토리 설정(기본 전부).
 - 기본 표현과 새로 만드는 `WorldItem`의 콜라이더는 **트리거**다 — 물리 충돌로 플레이어를 막지 않고, `InteractionDetector`의 `OverlapSphere`는 트리거도 잡는다.
 
 ## 4. 호출자 이전
@@ -114,7 +115,7 @@ namespace Game.Items
 ## 6. 테스트 계획
 
 - **EditMode**: `DropPlacement`(오프셋 개수·겹침 없음), 스포너 선택(등록 순서, `CanSpawn`), `WeaponWorldSpawner.CanSpawn`.
-- **Play 모드(API 호출)**: 프리팹 없는 아이템이 기본 표현으로 생김, `WorldItem` 자동 부착, 무기 인스턴스 상태 보존, 팩토리 없는 씬에서 자동 생성.
+- **Play 모드(API 호출) — 검증함**: 팩토리 없는 씬에서 자동 생성, 무기 스포너 자동 등록, 프리팹 없는 아이템이 기본 표현·`WorldItem`으로 생기고 지면에 닿음, 프리팹 있는 아이템, `SpawnAll` 6개가 서로 0.7 이상 떨어짐, 무기 인스턴스 상태 보존(같은 인스턴스), 데이터만 주면 새 인스턴스, 무기 교체로 밀려난 무기가 팩토리로 드롭됨, 트리거/`Rigidbody`/인터랙터블은 지면으로 안 침. EditMode 테스트는 아직 없음.
 - **에디터 직접 확인 필요**: 바닥 스냅과 흩뿌리기의 실제 배치, 플레이어가 트리거 아이템에 막히지 않는지.
 
 ## 7. 알려진 제한

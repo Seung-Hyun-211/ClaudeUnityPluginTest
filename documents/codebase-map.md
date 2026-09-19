@@ -65,7 +65,7 @@ Layer 2 (Layer 0~1 조합):
   Interaction(PlayerInteractionController) -> UI.Windows  [2026-09-18 추가, #3]
   Items.World(WorldItem) -> Interaction
   QuickSlot -> Items, Skills, UI.Windows  [QuickSlotInputHandler, #3]
-  Weapons -> Items, Combat, Interaction, UI.Windows  [WeaponLoadoutInputHandler, #3]
+  Weapons -> Items, Combat, Interaction, UI.Windows  [WeaponLoadoutInputHandler, #3; WeaponWorldSpawner/WeaponPickup -> Items.World 팩토리, 2026-09-19]
   Items.UI -> Items.Grid, Items.Equipment, Player, UI.Windows
   Dialogue -> Interaction, Items(+Equipment), Persistence, UI.Windows  [DialogueInteractable/DialoguePlayer/GiveItemEventHandler/DialogueFlagStore, 2026-09-19]
   HUD.Markers/Compass/Minimap -> (내부) HUD.Markers
@@ -187,7 +187,9 @@ graph LR
 
 ### Items/World (`Game.Items`)
 - `World/WorldItem.cs` — class WorldItem : MonoBehaviour, IInteractable → `Game.Interaction`, `Game.Items.Equipment` (`ContainerEquipmentController`의 Pocket→Rig→Backpack 그리드 우선, 없으면 플랫 `IInventory` 폴백. +`SetStack`)
-- `World/WorldItemSpawner.cs` — static class WorldItemSpawner (`ItemData.WorldPrefab` 인스턴스화 — 그리드에서 밀려난/버린 스택을 월드로 드롭)
+- `World/WorldItemFactory.cs` — class WorldItemFactory : MonoBehaviour, IWorldItemFactory (월드에 아이템을 만드는 단일 진입점, `Instance`는 씬에 없으면 자동 생성, 종류별 `IWorldItemSpawner` 등록, `SpawnAll`은 흩뿌려 지면에 놓음, 2026-09-19)
+- `World/IWorldItemFactory.cs`, `World/IWorldItemSpawner.cs`, `World/WorldSpawnRequest.cs` — 인터페이스와 요청(아이템+수량+선택적 `object State`)
+- `World/ItemWorldSpawner.cs` — 기본 스포너(`WorldPrefab` 또는 기본 표현 + `WorldItem`) / `World/DefaultWorldVisual.cs` — 프리팹 없을 때의 트리거 큐브 / `World/DropPlacement.cs` — 흩뿌리기 오프셋·지면 탐색(순수 함수)
 
 ### Items/Grid (`Game.Items.Grid`)
 - `IGridInventory.cs` — interface IGridInventory (`TryPlaceAt`에 `rotated` 인자 추가, 2026-09-19)
@@ -383,7 +385,8 @@ graph LR
 - `WeaponLoadoutSlot.cs` — enum WeaponLoadoutSlot (Primary/Secondary/Melee)
 - `WeaponLoadout.cs` — class WeaponLoadout : MonoBehaviour (2 firearm + 1 melee, 키 1/2/3 고정)
 - `WeaponLoadoutInputHandler.cs` — class WeaponLoadoutInputHandler : MonoBehaviour (1/2/3 전용, QuickSlotInputHandler와 배타적 키 분리) → `Game.UI.Windows`(게이팅, 2026-09-18, #3)
-- `WeaponPickup.cs` — class WeaponPickup : MonoBehaviour, IInteractable → `Game.Interaction`
+- `WeaponPickup.cs` — class WeaponPickup : MonoBehaviour, IInteractable → `Game.Interaction`, `Game.Items` (밀려난 무기를 `WorldItemFactory`로 드롭 — `dropPrefab` 삭제, 2026-09-19)
+- `WeaponWorldSpawner.cs` — class WeaponWorldSpawner : IWorldItemSpawner → `Game.Items` (무기 인스턴스/데이터를 `WeaponPickup`으로 생성, `RuntimeInitializeOnLoadMethod`로 팩토리에 자동 등록)
 - `ThrowableItemData.cs` — class ThrowableItemData : ItemData (2026-09-18 신설, §10 결정 — `WeaponLoadoutSlot`에 안 들어가는 퀵슬롯 전용 투척 아이템, `ItemData.OnUse` 오버라이드)
 
 ### Weapons/UI (`Game.Weapons.UI`)

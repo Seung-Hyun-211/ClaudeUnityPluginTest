@@ -24,7 +24,7 @@ namespace Game.DebugHarness
             GUILayout.BeginArea(new Rect(10, 10, 460, 420), GUI.skin.box);
             GUILayout.Label("Inventory Test Harness");
             GUILayout.Label("F on the world item now tries Pocket -> Rig -> Backpack grids first (WorldItem -> ContainerEquipmentController), falling back to the flat Inventory only if the interactor has no equipment controller.");
-            GUILayout.Label("Unequip Rig/Backpack below to see evicted items drop back into the world (WorldItemSpawner).");
+            GUILayout.Label("Unequip Rig/Backpack below to see evicted items drop back into the world (WorldItemFactory).");
 
             GUILayout.Space(8);
             GUILayout.Label($"Flat Inventory: {sampleItemSmall.DisplayName} x{flatInventory.GetQuantity(sampleItemSmall)}");
@@ -45,19 +45,19 @@ namespace Game.DebugHarness
             }
             if (GUILayout.Button("Equip Rig"))
             {
-                WorldItemSpawner.SpawnAll(equipment.Equip(rigContainer), transform.position);
+                WorldItemFactory.Instance.SpawnAll(equipment.Equip(rigContainer), transform.position);
             }
             if (GUILayout.Button("Unequip Rig"))
             {
-                WorldItemSpawner.SpawnAll(equipment.Unequip(ContainerCategory.Rig), transform.position);
+                WorldItemFactory.Instance.SpawnAll(equipment.Unequip(ContainerCategory.Rig), transform.position);
             }
             if (GUILayout.Button("Equip Backpack"))
             {
-                WorldItemSpawner.SpawnAll(equipment.Equip(backpackContainer), transform.position);
+                WorldItemFactory.Instance.SpawnAll(equipment.Equip(backpackContainer), transform.position);
             }
             if (GUILayout.Button("Unequip Backpack"))
             {
-                WorldItemSpawner.SpawnAll(equipment.Unequip(ContainerCategory.Backpack), transform.position);
+                WorldItemFactory.Instance.SpawnAll(equipment.Unequip(ContainerCategory.Backpack), transform.position);
             }
 
             GUILayout.Space(8);

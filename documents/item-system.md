@@ -46,7 +46,7 @@ graph TD
 
 ### World — `Assets/Scripts/Items/World`
 
-- **`WorldItem.cs`** — 3D 씬에 배치되는 필드 아이템. `ItemData.WorldPrefab`이 실제로 씬에 나타나는 3D 메시를 정의하고, `WorldItem`은 그 오브젝트에 붙어 `Interact()` 시 상대방의 `ContainerEquipmentController` 그리드(Pocket→Rig→Backpack)에 먼저, 없으면 `IInventory`에 아이템을 넣는다. 월드에 아이템을 만드는 경로는 현재 `WorldItemSpawner`(정적)이고, [world-item-factory.md](world-item-factory.md)에서 `IWorldItemFactory`로 통합할 설계가 있다(미구현). 상호작용 계약(`IInteractable`) 자체는 문 열기, NPC 대화 등 다른 상호작용 종류와 함께 `Game.Interaction`(`Assets/Scripts/Interaction`)으로 옮겨 일반화했다 — [interaction-system.md](interaction-system.md) 참고.
+- **`WorldItem.cs`** — 3D 씬에 배치되는 필드 아이템. `ItemData.WorldPrefab`이 실제로 씬에 나타나는 3D 메시를 정의하고, `WorldItem`은 그 오브젝트에 붙어 `Interact()` 시 상대방의 `ContainerEquipmentController` 그리드(Pocket→Rig→Backpack)에 먼저, 없으면 `IInventory`에 아이템을 넣는다. 월드에 아이템을 만드는 경로는 `WorldItemFactory` 하나다([world-item-factory.md](world-item-factory.md)).
 
 ### Crafting — `Assets/Scripts/Items/Crafting`
 

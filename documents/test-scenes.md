@@ -23,7 +23,7 @@
 ## Test_Inventory
 
 - **UGUI 패널** — Pocket/Rig/Backpack 세 `GridInventoryUIView`(화면 아래쪽). Rig/Backpack은 장착 전에는 모양이 없어 셀이 0개다(정상) — 먼저 장착해야 보인다.
-- **`InventoryTestHarness`**(왼쪽 위) — 플랫 인벤토리 추가, Pocket에 추가, Rig/Backpack 장착·해제(밀려난 아이템은 `WorldItemSpawner`로 월드에 드롭).
+- **`InventoryTestHarness`**(왼쪽 위) — 플랫 인벤토리 추가, Pocket에 추가, Rig/Backpack 장착·해제(밀려난 아이템은 `WorldItemFactory`로 월드에 드롭).
 - **`InventoryDummyDataHarness`**(오른쪽 위) — "Fill all grids randomly" / "Clear all grids" / 컨테이너 4종 장착 / 아이템 12종 개별 추가(Pocket→Rig→Backpack 순).
 - **드래그** — 아이템을 잡고 끌면 실제 아이콘이 잡은 위치 그대로 따라오고, 아래 그리드에 놓일 자리가 초록(들어감)/빨강(안 들어감, 자동 배치 폴백)으로 표시된다. `R`로 90° 회전. 드롭 칸은 마우스가 아니라 아이콘 왼쪽 위 모서리 기준이다.
 - **줍기** — 월드 아이템 근처에서 `F` → Pocket→Rig→Backpack 순으로 들어간다.
