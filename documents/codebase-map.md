@@ -39,6 +39,8 @@
 | `SceneFlow` | `Game.SceneFlow` | |
 | `Persistence` | `Game.Persistence` | |
 
+**어셈블리(2026-09-19)**: `Assets/Scripts` 전체가 `Game` 어셈블리, `Assets/Scripts/Editor`가 `Game.Editor`, `Assets/Tests/EditMode`가 `Game.Tests.EditMode`다 — [testing.md](testing.md). 새 외부 패키지를 쓰면 `Game.asmdef` 참조에 추가해야 한다.
+
 C# 네임스페이스 중첩 규칙 주의: `Game.X.Y`는 `Game.X`를 `using` 없이 본다(부모 자동 노출). **형제 네임스페이스**(예: `Game.Items.UI` → `Game.Items.Grid`)는 명시적 `using`이 필요 — 아래 그래프의 간선은 이 명시적 `using Game.*` 51건(38개 파일)을 grep한 결과이며, 부모-자식 자동 노출 관계는 간선에 포함하지 않음(예: `Weapons.UI`가 `Game.Weapons`를 보는 것은 당연하므로 그래프에 없음).
 
 ## B. 모듈 의존 그래프
