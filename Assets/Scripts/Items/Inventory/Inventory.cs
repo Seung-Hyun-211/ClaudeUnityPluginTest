@@ -23,6 +23,13 @@ namespace Game.Items
 
         public InventorySlot GetSlot(int index) => slots[index];
 
+        /// <summary>Overwrites one slot directly (null empties it) - for restoring saved contents.</summary>
+        public void SetSlotStack(int index, ItemStack stack)
+        {
+            slots[index].Stack = stack;
+            InventoryChanged?.Invoke();
+        }
+
         public int AddItem(ItemData item, int quantity)
         {
             if (item == null || quantity <= 0)

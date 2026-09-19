@@ -271,6 +271,8 @@ GameObject:
   - component: {fileID: 181465665}
   - component: {fileID: 181465664}
   - component: {fileID: 181465669}
+  - component: {fileID: 181465671}
+  - component: {fileID: 181465670}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -405,6 +407,35 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 30cfe957dda922f4bbcbe9f4a9c30eac, type: 2}
   - {fileID: 11400000, guid: 4abf536b77414a340a89805cfeca02eb, type: 2}
   maxStackPerFill: 5
+--- !u!114 &181465670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 181465662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2486d6511040dac44a00a2f449092521, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Items.InventorySaveProvider
+  inventory: {fileID: 181465666}
+  database: {fileID: 11400000, guid: 4393106f8594b5e4c9eb668de488746b, type: 2}
+  saveKey: inventory.flat
+--- !u!114 &181465671
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 181465662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55a5f08cbb594874ebf11ff7db825d98, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Game.Items.Equipment.ContainerEquipmentSaveProvider
+  equipment: {fileID: 181465667}
+  database: {fileID: 11400000, guid: 4393106f8594b5e4c9eb668de488746b, type: 2}
 --- !u!1 &190002806
 GameObject:
   m_ObjectHideFlags: 0

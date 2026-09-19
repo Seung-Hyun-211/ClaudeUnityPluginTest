@@ -129,6 +129,18 @@ namespace Game.Items.Grid
             return removed;
         }
 
+        /// <summary>Removes every placed item without returning them - for restoring saved contents over the current ones.</summary>
+        public void Clear()
+        {
+            if (placedItems.Count == 0)
+            {
+                return;
+            }
+
+            placedItems.Clear();
+            GridChanged?.Invoke();
+        }
+
         public List<ItemStack> SetShape(GridShapeData newShape)
         {
             Shape = newShape;
