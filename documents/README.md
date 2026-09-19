@@ -28,6 +28,10 @@
 
 - [scene-and-persistence-system.md](scene-and-persistence-system.md) — Title/Loading(재사용)/InGameLobby/InGameCombat 씬 분리와 전환(`SceneFlowController`), 씬을 오가도 사라지면 안 되는 런타임 데이터(`PlayerRuntimeContext`), 게임을 껐다 켜도 유지되는 세이브 데이터(`ISaveDataProvider`/`SaveGameService`)를 분리해 설계. 프레임워크 구현됨(기존 서브시스템의 `ISaveDataProvider` 연동, 실제 씬 자산, `PlayerRuntimeContext` 배선은 아직)
 
+### 테스트 환경
+
+- [test-scenes.md](test-scenes.md) — 시스템별 테스트 씬(`Assets/Scenes/Tests`)과 OnGUI 디버그 하니스 목록, 사용법, 헤드리스 CLI로 검증할 수 없어서 에디터에서 직접 확인해야 하는 항목
+
 ### 설계 검증
 
 - [design-conflict-review.md](design-conflict-review.md) — `documents/`(엔지니어링 설계)와 [`Docs/`](../Docs)(기획 문서, `claude/shooting-game-design-doc-h4cm46` 브랜치에서 병합)를 대조 검증한 결과. 퀵슬롯 vs 무기 슬롯의 숫자키 충돌은 해결됨(`1`/`2`/`3` 무기 고정, 퀵슬롯은 `4`~`0`), 무기 정확도/반동 모델 불일치는 여전히 남음, 나머지는 통합 공백 또는 정합 확인
@@ -66,4 +70,6 @@
 | 무기 시스템(총기/근접/파츠/탄약/장착/픽업/1·2·3 고정키) | `Assets/Scripts/Weapons` | `Game.Weapons` | 구현됨 |
 | 무기 슬롯 UI | `Assets/Scripts/Weapons/UI` | `Game.Weapons.UI` | 구현됨 |
 | 씬 카탈로그/전환 컨트롤러 | `Assets/Scripts/SceneFlow` | `Game.SceneFlow` | 구현됨 |
-| 세이브/로드(ISaveDataProvider) | `Assets/Scripts/Persistence` | `Game.Persistence` | 구현됨(기존 서브시스템 연동은 아직) |
+| 세이브/로드(ISaveDataProvider) | `Assets/Scripts/Persistence` | `Game.Persistence` | 구현됨(PlayerVitals/Health 어댑터 연동 완료, 인벤토리/퀵슬롯/AttributeSet/무기는 아직) |
+| 프리팹(Player/Enemy/NPC/월드 아이템/그리드 UI) | `Assets/Prefabs` | — | 구현됨 |
+| 테스트 씬/디버그 하니스 | `Assets/Scenes/Tests`, `Assets/Scripts/DebugHarness` | `Game.DebugHarness` | 구현됨 — [test-scenes.md](test-scenes.md) |

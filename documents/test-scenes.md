@@ -1,0 +1,45 @@
+# 테스트 씬 & 디버그 하니스
+
+시스템별로 따로 확인할 수 있게 만든 씬 모음. 씬은 `Assets/Scenes/Tests`, 씬 전용 데이터는 `Assets/Data/Tests`, OnGUI 디버그 스크립트는 `Assets/Scripts/DebugHarness`(`Game.DebugHarness`)에 있다. 하니스는 전부 테스트 전용이며 실제 빌드에 넣지 않는다 — 각 파일 doc comment에도 명시돼 있다. 모든 씬은 Build Settings에 등록돼 있다.
+
+씬 구성은 손으로 YAML을 고치지 않고 열려 있는 Unity Editor에 `unity` CLI(`run_script`)로 만들었다.
+
+## 씬 목록
+
+| 씬 | 검증 대상 | 사용법 |
+|---|---|---|
+| `Test_Inventory` | 플랫 인벤토리, Pocket/Rig/Backpack 그리드, 월드 아이템 줍기/드롭, **드래그 앤 드롭·회전**, 더미 데이터 | 아래 "Test_Inventory" |
+| `Test_QuickSlotWeapons` | 퀵슬롯 뱅크/무기 로드아웃, 스킬, 투척물 | 하니스 버튼 |
+| `Test_CombatEnemy` | Normal/Elite/Boss 적 AI 브레인 | 하니스에서 피해 주기·상태 확인 |
+| `Test_Npc` | Village/Companion NPC | 하니스 버튼 |
+| `Test_InteractionWindows` | `WindowManager`, 문 상호작용, 플레이어 HUD | 하니스 버튼 |
+| `Test_Prefabs` | `Enemy`/`VillageNpc`/`CompanionNpc` 프리팹을 `EnemySpawner`/`NpcSpawner`로 런타임 스폰 | Play만 누르면 스폰, 좌상단에 상태 표시 |
+| `Test_PlayerMovement` | `Player.prefab`, WASD/Shift/Space/좌클릭 | 화면에 위치·속도·스태미나·`Grounded` 표시 |
+| `SceneFlow/Boot` → `Title`/`Loading`/`Lobby`/`Combat` | 씬 전환, 세이브/로드, `PlayerRuntimeContext` | **Boot에서** Play. `SceneFlowTestHarness` 버튼으로 전환·저장·불러오기 |
+
+`Lobby`/`Combat`의 `PlayerStandIn`에는 `HealthComponent`/`PlayerVitals`와 실제 세이브 어댑터가 붙어 있다. `PlayerStateTestHarness`로 체력/허기를 바꾸고 Boot의 Save/Load로 복원되는지 확인한다. Boot를 거치지 않고 직접 열면 `PlayerRuntimeContext`가 없다는 경고 한 줄이 정상적으로 뜬다.
+
+## Test_Inventory
+
+- **UGUI 패널** — Pocket/Rig/Backpack 세 `GridInventoryUIView`(화면 아래쪽). Rig/Backpack은 장착 전에는 모양이 없어 셀이 0개다(정상) — 먼저 장착해야 보인다.
+- **`InventoryTestHarness`**(왼쪽 위) — 플랫 인벤토리 추가, Pocket에 추가, Rig/Backpack 장착·해제(밀려난 아이템은 `WorldItemSpawner`로 월드에 드롭).
+- **`InventoryDummyDataHarness`**(오른쪽 위) — "Fill all grids randomly" / "Clear all grids" / 컨테이너 4종 장착 / 아이템 12종 개별 추가(Pocket→Rig→Backpack 순).
+- **드래그** — 아이템을 잡고 끌면 실제 아이콘이 잡은 위치 그대로 따라오고, 아래 그리드에 놓일 자리가 초록(들어감)/빨강(안 들어감, 자동 배치 폴백)으로 표시된다. `R`로 90° 회전. 드롭 칸은 마우스가 아니라 아이콘 왼쪽 위 모서리 기준이다.
+- **줍기** — 월드 아이템 근처에서 `F` → Pocket→Rig→Backpack 순으로 들어간다.
+
+## 헤드리스 CLI로 검증할 수 없는 것
+
+이 씬들은 CLI로 Play 모드를 돌려 콘솔 에러 0건을 확인했지만, **Play 모드 프레임이 실제로 흐르지 않는 환경**(`Time.time`이 0.02에서 안 올라감, `Destroy`가 지연됨, 비동기 씬 로드가 끝나지 않음, 키·마우스 입력 없음)이라 아래는 에디터에서 직접 확인해야 한다.
+
+- 실제 걷기/점프 궤적, 공중 모멘텀 유지, 착지 후 재조향(`Test_PlayerMovement`)
+- 마우스 드래그·드롭 제스처, 미리보기 색, 고스트 정리, `R` 회전(`Test_Inventory`)
+- Boot → Loading → Lobby/Combat 씬 전환과 저장/불러오기 왕복(`SceneFlow`)
+
+로직 자체(`GridItemDragMover` 이동/병합/원위치 복귀, 회전 배치, 자동 회전, 스냅 계산)는 API 호출로 검증했다.
+
+## 새 테스트 씬을 만들 때
+
+- Editor가 열려 있으면 `unity command run_script --file <파일.cs> --entry 클래스.메서드`로 씬/프리팹/에셋을 만든다(`eval`은 `using`/클래스 선언을 지원하지 않는다). Git Bash에서는 `/`로 시작하는 인자에 `MSYS_NO_PATHCONV=1`이 필요하다.
+- 스크립트에서 `EditorSceneManager.OpenScene(..., Single)`을 호출하면 이전에 로드한 에셋 참조가 해제되므로, 씬을 연 **뒤에** `AssetDatabase.LoadAssetAtPath`로 다시 불러와 연결한다.
+- 씬 UI에는 `InputSystemUIInputModule`을 쓴다(`StandaloneInputModule`은 Active Input Handling = Input System 설정에서 예외를 던진다).
+- `AddSceneToBuild` 후에는 `AssetDatabase.SaveAssets()`를 호출해야 `EditorBuildSettings.asset`이 디스크에 반영된다.

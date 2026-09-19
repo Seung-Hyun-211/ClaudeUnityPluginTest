@@ -66,6 +66,9 @@ classDiagram
 
 - 입력(Input System)을 받아 `CharacterMotor`/공격 판정을 직접 호출하는 얇은 컨트롤러. AI 상태 머신을 갖지 않는다 — "AI 없음"도 하나의 유효한 조합이라는 점이 합성 방식의 장점이다.
 - `Faction = Player`로 고정.
+- **입력**: `PlayerInputHandler`(WASD 이동 + 좌클릭 공격)가 `PlayerController.OnMoveInput`/`OnAttackInput`을 호출한다. 프로젝트의 다른 입력 핸들러와 같은 관례(`Keyboard.current`/`Mouse.current` 직접 폴링, `WindowManager.IsAnyWindowOpen`이면 이동 정지)를 따르고, 스톡 `InputSystem_Actions.inputactions`는 쓰지 않는다. Sprint/Jump는 `PlayerLocomotion`이 스스로 처리한다. 현재 이동은 카메라 기준이 아닌 월드 좌표(X/Z) 기준이다 — 카메라/시점 시스템이 아직 없음.
+- **점프 모멘텀**: `CharacterMotor.IsGrounded`(접촉 법선 `y > 0.5` 기준, 물리 스텝 하나 늦게 반영)가 false인 동안 `FixedUpdate`가 수평 속도를 덮어쓰지 않고 `Stop()`도 속도를 0으로 만들지 않는다 — 이륙 순간의 수평 속도가 착지할 때까지 유지되고, 공중에서 키를 떼거나 방향을 바꿔도 영향이 없다. `PlayerLocomotion.TryJump`는 접지 상태에서만 가능(공중 무한 점프 방지).
+- **프리팹/씬 배선**: `Assets/Prefabs/Characters/Player.prefab`. `PlayerController.Awake`가 `PlayerRuntimeContext.Instance`가 있으면 자기 자신을 `BindActivePlayer`한다. `PlayerInputHandler.windowManager`는 씬 오브젝트라 프리팹에 못 넣고 씬마다 연결한다.
 - 인벤토리/장비는 이미 설계된 [inventory-system.md](inventory-system.md)의 `ContainerEquipmentController`(pocket/rig/backpack)와 [quickslot-and-skills.md](quickslot-and-skills.md)의 `QuickSlotController`(퀵슬롯)를 그대로 붙여서 사용한다(중복 설계 없음).
 - 스태미나(달리기/점프 제한)와 지구력/힘/행운 등 기초 스탯은 [player-attributes.md](player-attributes.md)에서 별도로 다룬다 — `PlayerController`는 `StaminaController`, `AttributeSet`을 추가로 보유하게 된다.
 

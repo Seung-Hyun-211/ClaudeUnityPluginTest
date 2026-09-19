@@ -178,13 +178,15 @@ graph LR
 - `Crafting/CraftingSystem.cs` — static class CraftingSystem
 
 ### Items/World (`Game.Items`)
-- `World/WorldItem.cs` — class WorldItem : MonoBehaviour, IInteractable → `Game.Interaction`
+- `World/WorldItem.cs` — class WorldItem : MonoBehaviour, IInteractable → `Game.Interaction`, `Game.Items.Equipment` (`ContainerEquipmentController`의 Pocket→Rig→Backpack 그리드 우선, 없으면 플랫 `IInventory` 폴백. +`SetStack`)
+- `World/WorldItemSpawner.cs` — static class WorldItemSpawner (`ItemData.WorldPrefab` 인스턴스화 — 그리드에서 밀려난/버린 스택을 월드로 드롭)
 
 ### Items/Grid (`Game.Items.Grid`)
-- `IGridInventory.cs` — interface IGridInventory
-- `GridInventory.cs` — class GridInventory : MonoBehaviour, IGridInventory
+- `IGridInventory.cs` — interface IGridInventory (`TryPlaceAt`에 `rotated` 인자 추가, 2026-09-19)
+- `GridInventory.cs` — class GridInventory : MonoBehaviour, IGridInventory (자동 배치가 원래 방향이 안 되면 90° 회전 재시도)
 - `GridShapeData.cs` — class GridShapeData : ScriptableObject (pocket/rig/backpack 모양 정의)
-- `PlacedItem.cs` — class PlacedItem
+- `PlacedItem.cs` — class PlacedItem (+`IsRotated`, 정적 `GetFootprint(item, rotated)`)
+- `GridItemDragMover.cs` — static class GridItemDragMover (드래그 이동: 정확한 칸 → 자동 배치 → 원위치 복귀. UI 비의존, 2026-09-19)
 
 ### Items/Equipment (`Game.Items.Equipment`)
 - `ContainerCategory.cs` — enum ContainerCategory (Pocket/Rig/Backpack)
@@ -196,10 +198,10 @@ graph LR
 - `InventoryUIView.cs` — class InventoryUIView : MonoBehaviour
 - `CraftingUIView.cs` — class CraftingUIView : MonoBehaviour
 - `GridCellUIView.cs` — class GridCellUIView : MonoBehaviour
-- `GridItemUIView.cs` — class GridItemUIView : MonoBehaviour, IPointerClickHandler → `Game.Items.Grid`
+- `GridItemUIView.cs` — class GridItemUIView : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler → `Game.Items.Grid` (드래그 소스: 실제 아이콘 복제 고스트, R 회전, 소스 파괴 시에도 고스트 정리)
 - `EquipmentSlotUIView.cs` — class EquipmentSlotUIView : MonoBehaviour, IPointerClickHandler → `Game.Items.Equipment`
 - `InventoryLayoutView.cs` — class InventoryLayoutView : MonoBehaviour → `Game.Items.Equipment`, `Game.Player`
-- `GridInventoryUIView.cs` — class GridInventoryUIView : MonoBehaviour → `Game.Items.Grid`
+- `GridInventoryUIView.cs` — class GridInventoryUIView : MonoBehaviour, IDropHandler → `Game.Items.Grid` (드롭 타깃 + 놓일 자리 미리보기, 첫 렌더링은 `Start`)
 - `InventoryScreenController.cs` — class InventoryScreenController : SimpleWindow → `Game.UI.Windows` (전체화면 인벤토리 진입점)
 
 ### Player (`Game.Player`) — Layer 0
@@ -272,7 +274,7 @@ graph LR
 - `FactionUtility.cs` — static class FactionUtility
 - `FactionMember.cs` — class FactionMember : MonoBehaviour
 - `CharacterStatsData.cs` — class CharacterStatsData : ScriptableObject
-- `CharacterMotor.cs` — class CharacterMotor : MonoBehaviour (Rigidbody 기반)
+- `CharacterMotor.cs` — class CharacterMotor : MonoBehaviour (Rigidbody 기반, +`IsGrounded`(충돌 법선 기반, 2026-09-19) — 공중에서는 수평 속도를 조향/정지하지 않아 점프 모멘텀이 착지까지 유지됨)
 - `AttributeType.cs` — enum AttributeType
 - `AttributeModifier.cs` — sealed class AttributeModifier
 - `AttributeFormula.cs` — class AttributeFormula : ScriptableObject ((base+Σflat)×(1+Σpercent))
@@ -282,13 +284,15 @@ graph LR
 - `PlayerActionType.cs` — enum PlayerActionType
 - `PlayerActionCosts.cs` — class PlayerActionCosts : ScriptableObject (nested struct Entry)
 - `StaminaController.cs` — class StaminaController : MonoBehaviour → `Game.Player` (+`Exhausted`/`Recovered` 이벤트, 2026-09-18, design-conflict-review.md #4)
-- `PlayerLocomotion.cs` — class PlayerLocomotion : MonoBehaviour → `Game.Characters` (자체 Input System 키 처리)
-- `PlayerController.cs` — class PlayerController : MonoBehaviour → `Game.Combat`, `Game.Characters`, `Game.Items.Equipment`, `Game.QuickSlot`, `Game.Weapons` (**최상위 composition root**, §D 참고)
+- `PlayerLocomotion.cs` — class PlayerLocomotion : MonoBehaviour → `Game.Characters` (자체 Input System 키 처리. `TryJump`는 `motor.IsGrounded`일 때만 가능 — 공중 연속 점프 방지)
+- `PlayerInputHandler.cs` — class PlayerInputHandler : MonoBehaviour → `Game.UI.Windows` (WASD + 좌클릭을 `PlayerController.OnMoveInput`/`OnAttackInput`으로 전달, `IsAnyWindowOpen`이면 이동 정지. 프로젝트 관례대로 `Keyboard.current`/`Mouse.current` 직접 폴링, 2026-09-19)
+- `PlayerController.cs` — class PlayerController : MonoBehaviour → `Game.Combat`, `Game.Characters`, `Game.Items.Equipment`, `Game.QuickSlot`, `Game.Weapons`, `Game.SceneFlow` (**최상위 composition root**, §D 참고. `Awake`에서 `PlayerRuntimeContext.Instance?.BindActivePlayer` 호출)
 
 ### Characters/Enemy (`Game.Characters.Enemy`, 2026-09-18 신설)
 - `EnemyTier.cs` — enum EnemyTier (Normal/Elite/Boss)
 - `EnemyData.cs` — class EnemyData : ScriptableObject (Tier/MaxHealth/MoveSpeed/AttackDamage/AttackRange/DetectionRadius)
 - `EnemyController.cs` — class EnemyController : MonoBehaviour → `Game.AI`, `Game.AI.States`, `Game.Characters`, `Game.Combat`, `Game.Weapons`(선택적 `WeaponLoadout`) — **composition root**, `Initialize(EnemyData)`가 `HealthComponent.SetMaxHealth`/`AiSensor.SetDetectionRadius`로 데이터 주입 + Tier에 맞는 `IAiBrain` 선택, `HealthComponent.Died`를 구독해 `DeadState`로 직접 전환(§D 참고)
+- `EnemySpawner.cs` — static class EnemySpawner (`Spawn(prefab, EnemyData, pos, rot)` — 인스턴스화 후 `Initialize` 호출. 프리팹: `Assets/Prefabs/Characters/Enemy.prefab`, 티어는 프리팹이 아니라 `EnemyData`로 결정, 2026-09-19)
 - `NormalEnemyBrain.cs` — class NormalEnemyBrain : IAiBrain (Idle/Patrol/Chase/Attack 재사용, 신규 상태 없음)
 - `EliteEnemyBrain.cs` — class EliteEnemyBrain : IAiBrain (+`SpecialAttackState`/`SpecialAttackGate`)
 - `SpecialAttackState.cs`, `SpecialAttackGate.cs` — Elite 전용 쿨다운 특수 공격
@@ -302,6 +306,7 @@ graph LR
 - `NpcController.cs` — class NpcController : MonoBehaviour → `Game.AI`, `Game.AI.States`, `Game.Characters`, `Game.Combat` — **composition root**(Enemy의 `EnemyController`와 동일 패턴). `IInteractable`은 구현하지 않음(§D 참고) — `NpcData`+`FactionMember`+선택적 `HealthComponent`/`AiSensor`가 항상 있고, AI는 `InitializeAi(IAiBrain)`을 호출해야만 켜짐(안 켜진 채로 있는 것 = 가만히 서 있는 Village NPC)
 - `CompanionOrder.cs` — enum CompanionOrder (Follow/Hold/AttackTarget)
 - `CompanionOrderReceiver.cs` — class CompanionOrderReceiver : MonoBehaviour (현재 주문 + AttackTarget 보관)
+- `NpcSpawner.cs` — static class NpcSpawner (`Spawn(prefab, pos, rot, brain = null)` — brain이 있을 때만 `InitializeAi`. 프리팹: `VillageNpc.prefab`(정적, 대화 전용)/`CompanionNpc.prefab`(이동·AI), 2026-09-19)
 - `CompanionBrain.cs` — class CompanionBrain : IAiBrain (Follow/Hold/AssistCombat 그래프, AssistCombat = `Game.AI.States.ChaseState`/`AttackState` 그대로 재사용)
 - `WanderBrain.cs` — class WanderBrain : IAiBrain (Village NPC용, Idle/Patrol 재사용 — Chase/Attack도 배선하지만 Neutral 진영이라 실질적으로 도달 불가)
 - (마찬가지로 `Game.AI.ForwardingAiState`로 통합됨 — 이 트랙의 로컬 구현은 삭제)
@@ -380,7 +385,7 @@ graph LR
 - `PlayerRuntimeContext.cs` — class PlayerRuntimeContext : MonoBehaviour (싱글턴, `DontDestroyOnLoad`). `ActivePlayer`를 설계 문서의 `PlayerController` 대신 `GameObject`로 타입 지정 — `Characters.Player`에 하드 컴파일 의존을 안 만들기 위한 의도적 이탈
 
 ### Persistence (`Game.Persistence`, 2026-09-18 신설)
-- `ISaveDataProvider.cs` — interface ISaveDataProvider (`SaveKey`/`CaptureState()`/`RestoreState(...)`) — 아직 구현체 없음(§4-4, 기존 서브시스템 연동은 후속 과제)
+- `ISaveDataProvider.cs` — interface ISaveDataProvider (`SaveKey`/`CaptureState()`/`RestoreState(...)`) — 실제 구현체: `Game.Player.PlayerVitalsSaveProvider`(`player.vitals`), `Game.Combat.HealthSaveProvider`(`player.health`), 그 외 인벤토리/퀵슬롯/AttributeSet/무기는 아직(§4-4). 플레이어에 붙는 provider는 씬이 달라 직렬화 참조를 못 쓰므로 `SaveDataRegistry.Instance`로 등록
 - `SaveTriggerReason.cs` — enum SaveTriggerReason (SceneTransition/ManualSavePoint/QuestCompleted/AppQuit/Custom)
 - `ISaveRequestSink.cs` — interface ISaveRequestSink (`RequestSave(SaveTriggerReason)`)
 - `SaveDataRegistry.cs` — class SaveDataRegistry : MonoBehaviour (`Register`/`Unregister`/`Providers`)
@@ -389,7 +394,7 @@ graph LR
 
 ## D. Composition root 상세 (누가 무엇을 조립하는가)
 
-- **`Characters.Player.PlayerController`** (`Characters/Player/PlayerController.cs`) — 최상위 조립점. 같은 GameObject에서 구성: `HealthComponent`(Combat), `CharacterMotor`(Characters), `FactionMember`(Characters), `StaminaController`(Characters.Player→Player), `AttributeSet`(Characters), `ContainerEquipmentController`(Items.Equipment), `QuickSlotController`(QuickSlot), `WeaponLoadout`(Weapons). **`PlayerRuntimeContext`(SceneFlow, 아래)가 씬 전환 시 재결합 대상으로 삼는 바로 그 컴포넌트 묶음** — 단, `PlayerRuntimeContext.ActivePlayer`는 컴파일 의존을 피하려고 `GameObject`로만 들고 있어서 실제 재결합 배선(`BindActivePlayer` 호출)은 아직 어느 쪽에서도 하지 않음(다음 단계 후보).
+- **`Characters.Player.PlayerController`** (`Characters/Player/PlayerController.cs`) — 최상위 조립점. 같은 GameObject에서 구성: `HealthComponent`(Combat), `CharacterMotor`(Characters), `FactionMember`(Characters), `StaminaController`(Characters.Player→Player), `AttributeSet`(Characters), `ContainerEquipmentController`(Items.Equipment), `QuickSlotController`(QuickSlot), `WeaponLoadout`(Weapons). **`PlayerRuntimeContext`(SceneFlow, 아래)가 씬 전환 시 재결합 대상으로 삼는 바로 그 컴포넌트 묶음** — 단, `PlayerRuntimeContext.ActivePlayer`는 컴파일 의존을 피하려고 `GameObject`로만 들고 있어서 실제 재결합 배선은 `PlayerController.Awake`가 `PlayerRuntimeContext.Instance`(있을 때만)에 자기 자신을 `BindActivePlayer`하는 것으로 완료(2026-09-19). `Assets/Prefabs/Characters/Player.prefab`이 이 묶음 + `PlayerLocomotion`/`PlayerInputHandler`를 하나로 조립한 첫 실제 프리팹(`PlayerInputHandler.windowManager`만 씬마다 연결).
 - **`UI.Windows.WindowManager`** — `FullScreenWindowEntry[]` 카탈로그로 `InventoryScreenController`/`MapScreenController`/`QuestScreenController`/`SettingsScreenController`(전부 `SimpleWindow` 상속)를 상호 배타 관리 + 별도 팝업 스택(`PopupWindow`/`IPopupContent` 구현체 2종). `CurrentFullScreenId`를 `HUD.HotbarLayoutController`가 구독해 퀵슬롯 1줄/2줄을 스위치. `IsAnyWindowOpen`(2026-09-18 추가)을 `QuickSlotInputHandler`/`PlayerInteractionController`/`WeaponLoadoutInputHandler`가 구독해 게이팅.
 - **`AI.StateMachine.AiStateMachine` + `AiContext` + `AiSensor`** — `AI.States`의 상태(Idle/Patrol/Chase/Attack/Dead/Follow/Hold)를 갈아끼우는 블랙보드. 상태들은 `context.Self`를 쓰지 않고 `context.Sensor`만 사용 → **2026-09-18부터 실제로 Enemy(`Characters.Enemy.EnemyController`)와 Companion NPC(`Characters.Npc.NpcController.InitializeAi`) 둘 다에서 사용 중** — 설계 의도가 실제로 검증됨.
 - **`Characters.Enemy.EnemyController`** — Enemy 전용 composition root. `HealthComponent`/`FactionMember`/`CharacterMotor`/`AiSensor`/`AiStateMachine`(+선택적 `WeaponLoadout`)을 구성하고, `EnemyData.Tier`에 따라 `NormalEnemyBrain`/`EliteEnemyBrain`/`BossEnemyBrain` 중 하나를 골라 초기 상태를 만든다. `EnemyController`는 하나뿐 — 티어 서브클래스 없음(개방-폐쇄).
@@ -405,8 +410,8 @@ graph LR
 - 무기 정확도/반동 정밀 모델(스칼라 스탯 → Spread/Recoil 런타임 상태로 재설계 필요) — `design-conflict-review.md` #2
 - 부적(Talisman) 효과 라우팅 브릿지(`AttributeType` vs `WeaponStatType`) — `design-conflict-review.md` #5
 - 1인칭/3인칭 시점 전환(ViewSwitch) — `design-conflict-review.md` #6
-- `ISaveDataProvider` 실제 구현체(PlayerVitals/AttributeSet/인벤토리/퀵슬롯/무기 로드아웃) — `scene-and-persistence-system.md` §4-4
-- `PlayerRuntimeContext.BindActivePlayer` 실제 호출 배선, Boot/Title/Loading/Lobby/Combat 씬 자산 자체(.unity) — SceneFlow는 아직 C# 프레임워크만 존재
+- `ISaveDataProvider` 남은 구현체(AttributeSet/인벤토리/퀵슬롯/무기 로드아웃) — `scene-and-persistence-system.md` §4-4 (PlayerVitals/Health는 완료)
+- 실제 게임 씬 콘텐츠 — Boot/Title/Loading/Lobby/Combat은 `Assets/Scenes/Tests/SceneFlow`에 테스트용 골격만 있음. 테스트 씬 목록은 [test-scenes.md](test-scenes.md)
 
 ## F. 문서 상호 참조
 
