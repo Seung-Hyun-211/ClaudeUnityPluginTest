@@ -151,3 +151,7 @@ PopupWindow Launch<TContent>(TContent contentPrefab) where TContent : MonoBehavi
 - Escape 키로 현재 창(팝업 우선, 없으면 전체화면) 닫기 — 지금은 각 창의 닫기 버튼/`FullScreenWindowHotkeyRouter`만 존재
 - 실제 블러 렌더 피처(여전히 `DarkenOverlayObscurer` 자리표시자 사용 중)
 - 카탈로그 항목의 잠금 상태(레벨 도달 전에는 "맵" 탭이 비활성화되는 등) — 지금은 등록된 항목이 항상 열 수 있다고 가정
+
+## 입력 차단자 (창이 아닌 것의 게이팅, 2026-09-19)
+
+대화창처럼 "창은 아니지만 열려 있는 동안 게임 입력을 막아야 하는" 것은 `WindowManager.AddInputBlocker(owner)` / `RemoveInputBlocker(owner)`로 참여한다. `IsAnyWindowOpen`이 창/팝업이 없어도 차단자가 있으면 true가 되므로 `PlayerInputHandler`·`PlayerInteractionController`·퀵슬롯·무기 입력 게이팅이 그대로 동작한다. 차단자는 풀스크린/팝업 스택에 들어가지 않고, 배경을 어둡게 하지 않으며, `CloseTopMost`(`Esc`)로 닫히지 않는다 — 자세한 사용 예는 [dialogue-system.md](dialogue-system.md).

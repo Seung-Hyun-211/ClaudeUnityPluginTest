@@ -79,7 +79,7 @@ void Interact(GameObject interactor);
 |---|---|---|---|---|
 | `WorldItem` (기존, 네임스페이스만 갱신) | `Assets/Scripts/Items/World` | `"{아이템명} 줍기"` | 항상 `true` | 인벤토리에 추가, 다 들어가면 파괴 |
 | `DoorInteractable` (신규) | `Assets/Scripts/Interaction` | 잠김/열림 상태별 문구 | `!isLocked` | 열림 상태 토글 + 애니메이터 |
-| `DialogueInteractable` (신규, 골격만) | `Assets/Scripts/Interaction` | `"{NPC명}와 대화하기"` | 항상 `true` | TODO — 실제 대화 UI/트리는 [npc-roles.md](npc-roles.md) 후속 과제 |
+| `DialogueInteractable` | `Assets/Scripts/Dialogue` (`Game.Dialogue`) | `"{NPC명}와 대화하기"` | 시퀀스가 있고 대화 중이 아닐 때 | `DialoguePlayer.Play(sequence)` — [dialogue-system.md](dialogue-system.md) |
 
 세 구현체 모두 `InteractionDetector`/`PlayerInteractionController`/`InteractionPromptUIView`를 전혀 모른다. 이후 상자 열기, 레버 당기기, 낚시 포인트 등을 추가할 때도 이 표에 행을 하나 추가하는 것과 동일한 작업이 된다.
 
@@ -87,5 +87,5 @@ void Interact(GameObject interactor);
 
 - 상호작용 대상이 여러 개 겹칠 때의 우선순위/시야각(Raycast) 기반 판정(현재는 최단 거리만 사용)
 - 홀드(누르고 있기) 상호작용, 진행률 표시(예: 문 강제로 열기)
-- `DialogueInteractable`/도어의 실제 콘텐츠(대화 트리, 문 열림 애니메이션 클립)
+- 도어의 실제 콘텐츠(문 열림 애니메이션 클립)
 - 상호작용 가능 오브젝트의 아웃라인/하이라이트 렌더링

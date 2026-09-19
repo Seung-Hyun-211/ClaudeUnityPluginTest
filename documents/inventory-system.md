@@ -95,7 +95,7 @@ graph LR
 ## 월드 아이템 연동 — `Assets/Scripts/Items/World`
 
 - **`WorldItem`** — `Interact` 시 상호작용자에게 `ContainerEquipmentController`가 있으면 Pocket → Rig → Backpack 순으로 그리드에 넣고(없으면 기존 플랫 `IInventory`로 폴백). 다 못 넣으면 남은 수량을 유지한 채 월드에 남는다. `SetStack(item, quantity)`로 스폰 직후 내용을 채운다.
-- **`WorldItemSpawner`** — `ItemData.WorldPrefab`을 인스턴스화. `Equip`/`Unequip`(`SetShape`)으로 밀려난 스택이나 인벤토리에서 버린 아이템을 월드에 떨군다(`InventoryLayoutView`, 테스트 하니스가 호출). `WorldPrefab`이 비어 있으면 경고만 남기고 건너뛴다. 범용 프리팹은 `Assets/Prefabs/Items/WorldItemPickup.prefab`.
+- **`WorldItemSpawner`** — (현재 구현; [world-item-factory.md](world-item-factory.md)에서 `IWorldItemFactory`로 대체할 설계가 있음) `ItemData.WorldPrefab`을 인스턴스화. `Equip`/`Unequip`(`SetShape`)으로 밀려난 스택이나 인벤토리에서 버린 아이템을 월드에 떨군다(`InventoryLayoutView`, 테스트 하니스가 호출). `WorldPrefab`이 비어 있으면 경고만 남기고 건너뛴다. 범용 프리팹은 `Assets/Prefabs/Items/WorldItemPickup.prefab`.
 
 ## 테스트 씬
 
@@ -116,3 +116,12 @@ graph LR
 - `GridShapeData.cellMask`를 2D 체크박스로 편집하는 커스텀 에디터(현재는 인스펙터에서 1차원 리스트로만 보임)
 - 실제 블러 렌더 피처(키 바인딩은 [window-system.md](window-system.md)의 카탈로그 기반 `FullScreenWindowHotkeyRouter`로 구현됨)
 - 인벤토리 그리드에서 드래그해 장비 슬롯에 장착하는 흐름(현재 `Equip()`은 코드 호출만 가능)
+
+## 세이브 (2026-09-19)
+
+둘 다 `ISaveDataProvider`를 구현하고 아이템을 `itemId`로 저장한다(`ItemDatabase`로 복원, [item-system.md](item-system.md)). 없어진 아이템/컨테이너 id, 더 이상 안 맞는 칸은 경고를 남기고 그 항목만 건너뛴다(로드 전체를 실패시키지 않음).
+
+- **`ContainerEquipmentSaveProvider`**(`Items.Equipment`, 키 `player.containers`, `Player.prefab`에 부착) — 슬롯별로 착용 중인 컨테이너 id + 그리드 내용(아이템 id, 수량, 칸 좌표, 회전 여부). 복원 순서는 그리드 비우기(`GridInventory.Clear`) → 컨테이너 장착/해제 → 저장된 위치에 `TryPlaceAt`. 컨테이너가 없던 슬롯은 해제하되, 기본 모양을 가진 Pocket은 그대로 둔다.
+- **`InventorySaveProvider`**(`Items`, 키는 `saveKey` 필드 — 기본 `inventory.flat`) — 플랫 `Inventory`의 슬롯(인덱스, id, 수량). 한 씬에 플랫 인벤토리가 여럿(핫바, 상자)일 수 있어서 키를 인스펙터 필드로 뒀다. 복원은 `Inventory.SetSlotStack`을 쓴다.
+
+플레이어에 붙는 어댑터라 `SaveDataRegistry.Instance`로 등록한다([scene-and-persistence-system.md](scene-and-persistence-system.md) §4-4). 퀵슬롯·무기 로드아웃은 아직 — 퀵슬롯은 뱅크를 지정해 복원하는 API와 스킬 id 조회가, 무기는 탄창·파츠 인스턴스 상태 직렬화가 필요하다.

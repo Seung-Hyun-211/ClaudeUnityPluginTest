@@ -23,6 +23,7 @@
 | `QuickSlot/UI` | `Game.QuickSlot.UI` | |
 | `Interaction` | `Game.Interaction` | |
 | `Interaction/UI` | `Game.Interaction.UI` | |
+| `Dialogue` | `Game.Dialogue` | 2026-09-19 신설. `DialogueInteractable`도 여기(Interaction → Dialogue → Items → Interaction 순환 방지) |
 | `Combat` | `Game.Combat` | |
 | `Characters/Core` | `Game.Characters` | 폴더명 `Core`가 네임스페이스에 안 붙음 |
 | `Characters/Player` | `Game.Characters.Player` | 위 `Player`(`Game.Player`)와 별개 |
@@ -66,6 +67,7 @@ Layer 2 (Layer 0~1 조합):
   QuickSlot -> Items, Skills, UI.Windows  [QuickSlotInputHandler, #3]
   Weapons -> Items, Combat, Interaction, UI.Windows  [WeaponLoadoutInputHandler, #3]
   Items.UI -> Items.Grid, Items.Equipment, Player, UI.Windows
+  Dialogue -> Interaction, Items(+Equipment), Persistence, UI.Windows  [DialogueInteractable/DialoguePlayer/GiveItemEventHandler/DialogueFlagStore, 2026-09-19]
   HUD.Markers/Compass/Minimap -> (내부) HUD.Markers
   AI.StateMachine(AiSensor/AiContext) -> Characters, Combat
 
@@ -138,6 +140,10 @@ graph LR
   CharNpc --> Characters
   CharNpc --> Combat
   Persistence --> Interaction
+  Dialogue --> Interaction
+  Dialogue --> ItemsEquip
+  Dialogue --> Persistence
+  Dialogue --> UIWindows
   Persistence --> SceneFlow
 ```
 
@@ -167,11 +173,13 @@ graph LR
 표기: `파일 — 종류 이름 : Base/Impl` (역할은 이름으로 자명하지 않을 때만 괄호로 추가)
 
 ### Items/Core, Items/Inventory, Items/Crafting (`Game.Items`)
+- `Core/ItemDatabase.cs` — class ItemDatabase : ScriptableObject (`itemId` 조회, 2026-09-19) + `Assets/Scripts/Editor/ItemDatabaseEditor.cs`(Collect 버튼)
 - `Core/ItemData.cs` — class ItemData : ScriptableObject (+ `virtual void OnUse(GameObject user)` 훅, 2026-09-18 추가, 기본 no-op — `Weapons.ThrowableItemData`가 오버라이드, §10 결정)
 - `Core/ItemType.cs` — enum ItemType
 - `Core/ItemStack.cs` — class ItemStack (개수/스택 로직, Add가 leftover 반환하는 Try* 컨벤션)
 - `Inventory/IInventory.cs` — interface IInventory
-- `Inventory/Inventory.cs` — class Inventory : MonoBehaviour, IInventory (플랫 슬롯형)
+- `Inventory/Inventory.cs` — class Inventory : MonoBehaviour, IInventory (플랫 슬롯형, +`SetSlotStack` 복원용)
+- `Inventory/InventorySaveProvider.cs` — class InventorySaveProvider : MonoBehaviour, ISaveDataProvider → `Game.Persistence` (2026-09-19)
 - `Inventory/InventorySlot.cs` — class InventorySlot
 - `Crafting/CraftingRecipe.cs` — class CraftingRecipe : ScriptableObject
 - `Crafting/CraftingIngredient.cs` — class CraftingIngredient
@@ -192,6 +200,7 @@ graph LR
 - `ContainerCategory.cs` — enum ContainerCategory (Pocket/Rig/Backpack)
 - `ContainerItemData.cs` — class ContainerItemData : ItemData → `Game.Items.Grid`
 - `ContainerEquipmentController.cs` — class ContainerEquipmentController : MonoBehaviour → `Game.Items.Grid`
+- `ContainerEquipmentSaveProvider.cs` — class ContainerEquipmentSaveProvider : MonoBehaviour, ISaveDataProvider → `Game.Items.Grid`, `Game.Persistence` (키 `player.containers`, 2026-09-19)
 
 ### Items/UI (`Game.Items.UI`)
 - `ItemSlotUIView.cs` — class ItemSlotUIView : MonoBehaviour, IPointerClickHandler
@@ -220,7 +229,7 @@ graph LR
 - `PopupWindow.cs` — class PopupWindow : MonoBehaviour, IWindow
 - `PopupLauncher.cs` — class PopupLauncher : MonoBehaviour
 - `FullScreenWindowEntry.cs` — struct FullScreenWindowEntry (카탈로그 항목: id/label/window/hotkey)
-- `WindowManager.cs` — class WindowManager : MonoBehaviour → `Game.UI` (풀스크린 상호배타 + 팝업 스택 통합 관리자, **핵심 composition root**) — `IsAnyWindowOpen`/`CloseTopMost()` 추가(2026-09-18, #3)
+- `WindowManager.cs` — class WindowManager : MonoBehaviour → `Game.UI` (풀스크린 상호배타 + 팝업 스택 통합 관리자, **핵심 composition root**) — `IsAnyWindowOpen`/`CloseTopMost()` 추가(2026-09-18, #3), `AddInputBlocker`/`RemoveInputBlocker`(창이 아닌 대화창이 게이팅에 참여, 2026-09-19)
 - `FullScreenWindowHotkeyRouter.cs` — class FullScreenWindowHotkeyRouter : MonoBehaviour
 - `WindowCloseInputHandler.cs` — class WindowCloseInputHandler : MonoBehaviour (2026-09-18 신설, Escape → `WindowManager.CloseTopMost()`, #3)
 - `FullScreenWindowTabBarUIView.cs`, `FullScreenWindowTabButtonUIView.cs` — MonoBehaviour(+IPointerClickHandler)
@@ -257,7 +266,19 @@ graph LR
 - `InteractionDetector.cs` — class InteractionDetector : MonoBehaviour
 - `PlayerInteractionController.cs` — class PlayerInteractionController : MonoBehaviour (F키 입력) → `Game.UI.Windows`(게이팅, 2026-09-18, #3)
 - `DoorInteractable.cs` — class DoorInteractable : MonoBehaviour, IInteractable
-- `DialogueInteractable.cs` — class DialogueInteractable : MonoBehaviour, IInteractable
+- (`DialogueInteractable`은 순환 의존 방지를 위해 2026-09-19 `Dialogue` 모듈로 이동)
+
+### Dialogue (`Game.Dialogue`, 2026-09-19 신설) — 상세: [dialogue-system.md](dialogue-system.md)
+- `DialogueNodeType.cs`, `DialogueEventType.cs`, `DialogueState.cs` — enum들 (Line/Choice/Branch/Event/Wait/End, SetFlag/GiveItem/StartQuest/OpenQuestOffer/OpenQuestTurnIn/OpenShop, Idle/Playing/WaitingForAdvance/ChoicePending/ModalPending/Waiting)
+- `DialogueCondition.cs`, `DialogueChoiceOption.cs`, `DialogueNode.cs` — [Serializable] 데이터(평면 구조), `DialogueNode` → `Game.Items`(`eventItem`)
+- `DialogueSequence.cs` — class DialogueSequence : ScriptableObject
+- `IDialogueFlags.cs` — interface / `DialogueFlagStore.cs` — class DialogueFlagStore : MonoBehaviour, IDialogueFlags, ISaveDataProvider → `Game.Persistence` (키 `dialogue.flags`)
+- `DialogueRunner.cs` — class DialogueRunner (순수 C#, 재생 상태 머신) / `DialogueLogEntry.cs`
+- `IDialogueEventHandler.cs` — interface + `DialogueEventContext`; `SetFlagEventHandler.cs`, `GiveItemEventHandler.cs` → `Game.Items`, `Game.Items.Equipment`
+- `IDialogueView.cs` — interface / `DialogueBoxUIView.cs` — class DialogueBoxUIView : MonoBehaviour, IDialogueView (UGUI 레거시 `Text`)
+- `DialoguePlayer.cs` — class DialoguePlayer : MonoBehaviour (**씬 composition root**, `Instance`) → `Game.UI.Windows`(`AddInputBlocker`)
+- `DialogueInputHandler.cs` — class DialogueInputHandler : MonoBehaviour (Submit F/Enter, Navigate W/S, Cancel 탭=로그/홀드=스킵)
+- `DialogueInteractable.cs` — class DialogueInteractable : MonoBehaviour, IInteractable → `Game.Interaction` (구 `Interaction/` 폴더에서 이동)
 
 ### Interaction/UI (`Game.Interaction.UI`)
 - `InteractionPromptUIView.cs` — class InteractionPromptUIView : MonoBehaviour
@@ -385,7 +406,7 @@ graph LR
 - `PlayerRuntimeContext.cs` — class PlayerRuntimeContext : MonoBehaviour (싱글턴, `DontDestroyOnLoad`). `ActivePlayer`를 설계 문서의 `PlayerController` 대신 `GameObject`로 타입 지정 — `Characters.Player`에 하드 컴파일 의존을 안 만들기 위한 의도적 이탈
 
 ### Persistence (`Game.Persistence`, 2026-09-18 신설)
-- `ISaveDataProvider.cs` — interface ISaveDataProvider (`SaveKey`/`CaptureState()`/`RestoreState(...)`) — 실제 구현체: `Game.Player.PlayerVitalsSaveProvider`(`player.vitals`), `Game.Combat.HealthSaveProvider`(`player.health`), 그 외 인벤토리/퀵슬롯/AttributeSet/무기는 아직(§4-4). 플레이어에 붙는 provider는 씬이 달라 직렬화 참조를 못 쓰므로 `SaveDataRegistry.Instance`로 등록
+- `ISaveDataProvider.cs` — interface ISaveDataProvider (`SaveKey`/`CaptureState()`/`RestoreState(...)`) — 실제 구현체: `Game.Player.PlayerVitalsSaveProvider`(`player.vitals`), `Game.Combat.HealthSaveProvider`(`player.health`), `Game.Items.Equipment.ContainerEquipmentSaveProvider`(`player.containers`), `Game.Items.InventorySaveProvider`(`inventory.flat`), `Game.Dialogue.DialogueFlagStore`(`dialogue.flags`), 퀵슬롯/AttributeSet/무기는 아직(§4-4). 플레이어에 붙는 provider는 씬이 달라 직렬화 참조를 못 쓰므로 `SaveDataRegistry.Instance`로 등록
 - `SaveTriggerReason.cs` — enum SaveTriggerReason (SceneTransition/ManualSavePoint/QuestCompleted/AppQuit/Custom)
 - `ISaveRequestSink.cs` — interface ISaveRequestSink (`RequestSave(SaveTriggerReason)`)
 - `SaveDataRegistry.cs` — class SaveDataRegistry : MonoBehaviour (`Register`/`Unregister`/`Providers`)
@@ -410,7 +431,7 @@ graph LR
 - 무기 정확도/반동 정밀 모델(스칼라 스탯 → Spread/Recoil 런타임 상태로 재설계 필요) — `design-conflict-review.md` #2
 - 부적(Talisman) 효과 라우팅 브릿지(`AttributeType` vs `WeaponStatType`) — `design-conflict-review.md` #5
 - 1인칭/3인칭 시점 전환(ViewSwitch) — `design-conflict-review.md` #6
-- `ISaveDataProvider` 남은 구현체(AttributeSet/인벤토리/퀵슬롯/무기 로드아웃) — `scene-and-persistence-system.md` §4-4 (PlayerVitals/Health는 완료)
+- `ISaveDataProvider` 남은 구현체(AttributeSet/퀵슬롯/무기 로드아웃) — `scene-and-persistence-system.md` §4-4 (PlayerVitals/Health는 완료)
 - 실제 게임 씬 콘텐츠 — Boot/Title/Loading/Lobby/Combat은 `Assets/Scenes/Tests/SceneFlow`에 테스트용 골격만 있음. 테스트 씬 목록은 [test-scenes.md](test-scenes.md)
 
 ## F. 문서 상호 참조

@@ -324,7 +324,7 @@ namespace Game.Persistence
 | 퀵슬롯 배치(뱅크 2개) | `quickslot-and-skills.md` | |
 | 무기 로드아웃(장착 무기, 파츠, 장전된 탄창) | `weapon-system.md` | |
 
-구현 현황(2026-09-19): **Hunger/Thirst**(`Game.Player.PlayerVitalsSaveProvider`, 키 `player.vitals`)와 플레이어 체력(`Game.Combat.HealthSaveProvider`, 키 `player.health`)이 첫 실제 어댑터로 구현됐다. 나머지(AttributeSet, 인벤토리/장비 컨테이너, 퀵슬롯, 무기 로드아웃)는 아직 `ISaveDataProvider`를 구현하지 않았다 — 같은 방식(어댑터를 하나씩 붙이는 개방-폐쇄)으로 추가한다.
+구현 현황(2026-09-19): **Hunger/Thirst**(`PlayerVitalsSaveProvider`, `player.vitals`), 플레이어 체력(`HealthSaveProvider`, `player.health`), 컨테이너/그리드 내용(`ContainerEquipmentSaveProvider`, `player.containers`), 플랫 인벤토리(`InventorySaveProvider`), 대화 플래그(`DialogueFlagStore`, `dialogue.flags`)가 구현됐다. 나머지(AttributeSet, 퀵슬롯, 무기 로드아웃)는 아직 `ISaveDataProvider`를 구현하지 않았다 — 같은 방식(어댑터를 하나씩 붙이는 개방-폐쇄)으로 추가한다.
 
 - 어댑터는 `DummyCounterSaveProvider`(테스트용 템플릿)와 같은 모양이지만, **플레이어에 붙는 어댑터는 Boot가 아닌 Lobby/Combat 씬에 있으므로** `SaveDataRegistry`를 직렬화 필드로 들 수 없다 — `OnEnable`/`OnDisable`에서 `SaveDataRegistry.Instance?.Register/Unregister`를 쓴다(`PlayerRuntimeContext.Instance` 패턴과 동일).
 - 복원용 훅은 각 서브시스템이 직접 제공한다: `PlayerVitals.RestoreVitals`(감소 로직 우회), `HealthComponent.RestoreHealth`(`Damaged`/`Died` 이벤트 없이 값만 복원 — 로드는 전투 피해가 아니므로).

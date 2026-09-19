@@ -33,6 +33,7 @@ graph TD
 
 - **`ItemType.cs`** — `Material / Consumable / Equipment / QuestItem / Misc` 분류 enum.
 - **`ItemData.cs`** — 아이템의 정적 데이터를 담는 `ScriptableObject`. 아이콘, 설명, 3D 표현용 `WorldPrefab`, 스택 최대치, 그리드 인벤토리에서 차지하는 `GridSize`(W×H)를 가진다. 실제 인스턴스 상태(수량 등)는 갖지 않는다 — 같은 애셋을 여러 스택에서 공유.
+- **`ItemDatabase.cs`** — `itemId → ItemData` 조회용 `ScriptableObject`(`TryGet`, `FindProblems`). 세이브 어댑터는 에셋 참조가 아니라 **`itemId`를 저장**하므로 복원할 때 id에서 에셋으로 돌아갈 통로가 필요하고, 상점/퀘스트 보상처럼 아이템을 id로 지정하는 곳에서도 같은 조회를 쓴다. 인스펙터의 "Collect all ItemData in project" 버튼(`Assets/Scripts/Editor/ItemDatabaseEditor.cs`)으로 채우며, `itemId`가 비었거나 중복이면 경고한다 — **새 `ItemData` 애셋은 고유한 `itemId`를 가져야 하고 데이터베이스에 등록돼야 저장/복원된다.** 테스트용 데이터베이스는 `Assets/Data/Tests/TestItemDatabase.asset`.
 - **`ItemStack.cs`** — `ItemData` + `Quantity`. `Add`/`Remove`는 남거나 실제로 처리된 양을 반환해 호출자가 후속 처리를 할 수 있게 한다.
 
 ### Inventory (플랫 슬롯) — `Assets/Scripts/Items/Inventory`
@@ -45,7 +46,7 @@ graph TD
 
 ### World — `Assets/Scripts/Items/World`
 
-- **`WorldItem.cs`** — 3D 씬에 배치되는 필드 아이템. `ItemData.WorldPrefab`이 실제로 씬에 나타나는 3D 메시를 정의하고, `WorldItem`은 그 오브젝트에 붙어 `Interact()` 시 상대방의 `IInventory` 컴포넌트에 아이템을 넣는다. 상호작용 계약(`IInteractable`) 자체는 문 열기, NPC 대화 등 다른 상호작용 종류와 함께 `Game.Interaction`(`Assets/Scripts/Interaction`)으로 옮겨 일반화했다 — [interaction-system.md](interaction-system.md) 참고.
+- **`WorldItem.cs`** — 3D 씬에 배치되는 필드 아이템. `ItemData.WorldPrefab`이 실제로 씬에 나타나는 3D 메시를 정의하고, `WorldItem`은 그 오브젝트에 붙어 `Interact()` 시 상대방의 `ContainerEquipmentController` 그리드(Pocket→Rig→Backpack)에 먼저, 없으면 `IInventory`에 아이템을 넣는다. 월드에 아이템을 만드는 경로는 현재 `WorldItemSpawner`(정적)이고, [world-item-factory.md](world-item-factory.md)에서 `IWorldItemFactory`로 통합할 설계가 있다(미구현). 상호작용 계약(`IInteractable`) 자체는 문 열기, NPC 대화 등 다른 상호작용 종류와 함께 `Game.Interaction`(`Assets/Scripts/Interaction`)으로 옮겨 일반화했다 — [interaction-system.md](interaction-system.md) 참고.
 
 ### Crafting — `Assets/Scripts/Items/Crafting`
 

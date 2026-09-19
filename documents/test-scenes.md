@@ -15,6 +15,7 @@
 | `Test_InteractionWindows` | `WindowManager`, 문 상호작용, 플레이어 HUD | 하니스 버튼 |
 | `Test_Prefabs` | `Enemy`/`VillageNpc`/`CompanionNpc` 프리팹을 `EnemySpawner`/`NpcSpawner`로 런타임 스폰 | Play만 누르면 스폰, 좌상단에 상태 표시 |
 | `Test_PlayerMovement` | `Player.prefab`, WASD/Shift/Space/좌클릭 | 화면에 위치·속도·스태미나·`Grounded` 표시 |
+| `Test_Dialogue` | 대화 시스템: NPC 대화(F), 선택지, 플래그 분기, 아이템 보상, 로그, 스킵 | 촌장/경비병 옆에서 F. 좌상단 하니스로 상태·플래그 확인, 시퀀스 직접 재생, 플래그 리셋 — 아래 "Test_Dialogue" |
 | `SceneFlow/Boot` → `Title`/`Loading`/`Lobby`/`Combat` | 씬 전환, 세이브/로드, `PlayerRuntimeContext` | **Boot에서** Play. `SceneFlowTestHarness` 버튼으로 전환·저장·불러오기 |
 
 `Lobby`/`Combat`의 `PlayerStandIn`에는 `HealthComponent`/`PlayerVitals`와 실제 세이브 어댑터가 붙어 있다. `PlayerStateTestHarness`로 체력/허기를 바꾸고 Boot의 Save/Load로 복원되는지 확인한다. Boot를 거치지 않고 직접 열면 `PlayerRuntimeContext`가 없다는 경고 한 줄이 정상적으로 뜬다.
@@ -34,6 +35,7 @@
 - 실제 걷기/점프 궤적, 공중 모멘텀 유지, 착지 후 재조향(`Test_PlayerMovement`)
 - 마우스 드래그·드롭 제스처, 미리보기 색, 고스트 정리, `R` 회전(`Test_Inventory`)
 - Boot → Loading → Lobby/Combat 씬 전환과 저장/불러오기 왕복(`SceneFlow`)
+- 대화: 타이핑 연출·선택지 포커스 색·`Esc` 탭/홀드 타이밍·한글 폰트 표시, 대화 시작/종료 프레임의 F 키 충돌 방지(`Test_Dialogue`) — 러너 로직·선택지·플래그·아이템 보상·차단자 해제는 API 호출로 검증함
 
 로직 자체(`GridItemDragMover` 이동/병합/원위치 복귀, 회전 배치, 자동 회전, 스냅 계산)는 API 호출로 검증했다.
 
@@ -43,3 +45,13 @@
 - 스크립트에서 `EditorSceneManager.OpenScene(..., Single)`을 호출하면 이전에 로드한 에셋 참조가 해제되므로, 씬을 연 **뒤에** `AssetDatabase.LoadAssetAtPath`로 다시 불러와 연결한다.
 - 씬 UI에는 `InputSystemUIInputModule`을 쓴다(`StandaloneInputModule`은 Active Input Handling = Input System 설정에서 예외를 던진다).
 - `AddSceneToBuild` 후에는 `AssetDatabase.SaveAssets()`를 호출해야 `EditorBuildSettings.asset`이 디스크에 반영된다.
+
+## Test_Dialogue
+
+[dialogue-system.md](dialogue-system.md) 참고. `Player.prefab`으로 걸어가서 NPC 근처(2.5m)에서 `F`.
+
+- **촌장**(노란색) — 첫 대화: 인사 → 선택지 3개 중 "도움이 필요합니다"를 고르면 동전 5개(그리드에 자리가 없으면 발밑에 드롭)와 `got_reward` 플래그. 다시 말을 걸면 "또 왔군" 분기로 시작하고, 보상을 받은 뒤에는 세 번째 선택지("감사 인사")가 새로 나타난다. `Reset flags`로 처음 상태로 되돌린다.
+- **경비병**(파란색) — 스킵 불가 시퀀스(`Esc` 홀드가 무시됨)와 1초 `Wait` 노드.
+- **키** — `F`/`Enter` 다음(타이핑 중이면 즉시 완성), `W`/`S`·`↑`/`↓` 선택지 이동, 마우스 클릭으로도 선택, `Esc` 탭 = 대화 기록, `Esc` 길게 = 스킵.
+- 대화 중에는 이동·상호작용·퀵슬롯이 막히고(`WindowManager` 입력 차단), 끝난 다음 프레임에 풀린다.
+- 한글이 네모로 나오면 폰트 문제다(레거시 `Text` 기본 폰트) — 에디터에서 확인 필요.

@@ -66,7 +66,7 @@ graph TD
 ```
 
 - `FactionMember(Neutral)` — Enemy의 적대 대상 탐지에서 제외된다.
-- `DialogueInteractable`이 `IInteractable.Interact()`를 구현해 대화창/상점을 연다(구체 UI는 범위 밖). `IInteractable`은 `Game.Interaction`에 있으며([interaction-system.md](interaction-system.md)), 실제로 `DialogueInteractable`이라는 최소 골격(`Interact` 본문은 TODO)까지 구현되어 있다 — **`NpcController`가 이를 구현하는 게 아니라, 대화가 필요한 Village 프리팹에 이 컴포넌트를 `NpcController` 옆에 그대로 붙이기만 하면 된다**(위 "공통 구조" 절에서 확정한 대로 — 한 GameObject에 `IInteractable` 구현이 두 개 경쟁하는 걸 피하기 위함).
+- `DialogueInteractable`이 `IInteractable.Interact()`를 구현해 대화를 시작한다(상점은 대화 `Event` 노드로 여는 설계 — 아직 상점 시스템 없음). `IInteractable`은 `Game.Interaction`에 있으며([interaction-system.md](interaction-system.md)), `DialogueInteractable`이 구현되어 있다(`Game.Dialogue`, `DialoguePlayer`를 통해 `DialogueSequence`를 재생 — [dialogue-system.md](dialogue-system.md)) — **`NpcController`가 이를 구현하는 게 아니라, 대화가 필요한 Village 프리팹에 이 컴포넌트를 `NpcController` 옆에 그대로 붙이기만 하면 된다**(위 "공통 구조" 절에서 확정한 대로 — 한 GameObject에 `IInteractable` 구현이 두 개 경쟁하는 걸 피하기 위함).
 - 대부분 `AiStateMachine` 없이 고정 위치에 서 있는다. 배회가 필요하면 Enemy와 **동일한** `IdleState`/`PatrolState`를 그대로 붙인 `WanderBrain : IAiBrain`을 하나 추가하면 된다 — 두 상태 모두 전투 개념(Chase/Attack)을 참조하지 않으므로 코드 재사용에 아무 문제가 없다.
 - 공격받을 수 있는 마을 NPC(습격 이벤트 대상 등)만 선택적으로 `HealthComponent`를 붙인다.
 
