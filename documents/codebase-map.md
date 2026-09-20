@@ -281,9 +281,10 @@ graph LR
 - `IDialogueFlags.cs` — interface / `DialogueFlagStore.cs` — class DialogueFlagStore : MonoBehaviour, IDialogueFlags, ISaveDataProvider → `Game.Persistence` (키 `dialogue.flags`)
 - `DialogueRunner.cs` — class DialogueRunner (순수 C#, 재생 상태 머신. `Cancel()`/`FastForward()` — 구 `Skip()` 대체, 2026-09-19) / `DialogueLogEntry.cs`
 - `IDialogueEventHandler.cs` — interface + `DialogueEventContext`; `SetFlagEventHandler.cs`, `GiveItemEventHandler.cs` → `Game.Items`, `Game.Items.Equipment`
-- `IDialogueView.cs` — interface / `DialogueBoxUIView.cs` — class DialogueBoxUIView : MonoBehaviour, IDialogueView (UGUI 레거시 `Text`)
+- `IDialogueView.cs` — interface / `DialogueBoxUIView.cs` — class DialogueBoxUIView : MonoBehaviour, IDialogueView (TextMeshPro로 전환 2026-09-20 — `maxVisibleCharacters` 타이핑, 본문에 텍스트 이펙트, 로그/선택지는 정적 색)
 - `DialoguePlayer.cs` — class DialoguePlayer : MonoBehaviour (**씬 composition root**, `Instance`) → `Game.UI.Windows`(`AddInputBlocker`)
 - `DialogueInputHandler.cs` — class DialogueInputHandler : MonoBehaviour (Submit F/Enter, Navigate W/S, Cancel Esc=대화 취소, Skip Tab=빨리 넘기기, Log L. 시작 프레임·실제 창이 열려 있을 때는 입력 무시. 2026-09-19 재작성)
+- `Text/` (2026-09-20, 상세: [dialogue-text-effects.md](dialogue-text-effects.md)) — `DialogueMarkup.cs`(인라인 태그 파서, 순수 C#), `ParsedText.cs`(+`TextSpan`/`TextPause`), `TextTagArgs.cs`, `ITextEffect.cs`(+`GlyphContext`/`GlyphStyle`), `BuiltInTextEffects.cs`(Color/Sway/Wave/Shake/Rainbow), `TextEffectRegistry.cs`(이름 → 효과 팩토리), `TextTypist.cs`(타이핑 시계·일시정지), `DialogueTextAnimator.cs`(MonoBehaviour, TMP 글자별 정점 조작) → `TMPro`
 - `DialogueInteractable.cs` — class DialogueInteractable : MonoBehaviour, IInteractable → `Game.Interaction` (구 `Interaction/` 폴더에서 이동)
 
 ### Interaction/UI (`Game.Interaction.UI`)

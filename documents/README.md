@@ -25,6 +25,7 @@
 - [player-attributes.md](player-attributes.md) — 스태미나(달리기/점프 제한)와 지구력·힘·행운 등 기초 스탯이 각종 확률·능력치에 반영되는 구조. 구현됨
 - [hud-system.md](hud-system.md) — 1인칭/3인칭 슈팅 HUD 레이아웃(체력·방어구·무기 / 상태 / 퀵슬롯 / 나침반 / 미니맵). 나침반·미니맵이 `IWorldMarker` 레지스트리를 공유. 구현됨
 - [dialogue-system.md](dialogue-system.md) — 텍스트 대화: 노드 그래프(`DialogueSequence`)를 순수 C# `DialogueRunner`가 재생하고, 뷰(`IDialogueView`)·이벤트 핸들러(`IDialogueEventHandler`)·스토리 플래그(세이브 연동)를 분리. 대화 중 게임 입력 차단은 `WindowManager.AddInputBlocker`. 시네마틱·퀘스트/상점 모달은 후속
+- [dialogue-text-effects.md](dialogue-text-effects.md) — 대사 안 특정 구간의 색·움직임(좌우 흔들림·물결·떨림·무지개)·일시정지 연출. 인라인 태그 + 순수 C# 파서/효과 + TMP 글자별 정점 조작. **1단계 구현됨**, 폰트는 NeoHyundai 동적 TMP 애셋
 
 ### 씬 / 지속성
 
@@ -32,7 +33,7 @@
 
 ### 테스트 환경
 
-- [testing.md](testing.md) — 자동 EditMode 테스트(83개): 어셈블리 분리(`Game`/`Game.Editor`/`Game.Tests.EditMode`), 실행 방법, 범위, 변이 확인, 아직 없는 곳
+- [testing.md](testing.md) — 자동 EditMode 테스트(122개): 어셈블리 분리(`Game`/`Game.Editor`/`Game.Tests.EditMode`), 실행 방법, 범위, 변이 확인, 아직 없는 곳
 - [test-scenes.md](test-scenes.md) — 시스템별 테스트 씬(`Assets/Scenes/Tests`)과 OnGUI 디버그 하니스 목록, 사용법, 헤드리스 CLI로 검증할 수 없어서 에디터에서 직접 확인해야 하는 항목
 
 ### 설계 검증

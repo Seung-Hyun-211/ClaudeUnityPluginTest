@@ -8,7 +8,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 
 | 어셈블리 | 위치 | 비고 |
 |---|---|---|
-| `Game` | `Assets/Scripts/Game.asmdef` | 게임 코드 전체. `Unity.InputSystem`, `UnityEngine.UI`, URP(`Core.Runtime`, `Universal.Runtime`) 참조 |
+| `Game` | `Assets/Scripts/Game.asmdef` | 게임 코드 전체. `Unity.InputSystem`, `UnityEngine.UI`, `Unity.TextMeshPro`(2026-09-20), URP(`Core.Runtime`, `Universal.Runtime`) 참조 |
 | `Game.Editor` | `Assets/Scripts/Editor/Game.Editor.asmdef` | 에디터 전용(`ItemDatabaseEditor`). `Editor` 폴더 규칙은 asmdef 안에서는 적용되지 않아서 별도 asmdef가 필요하다 |
 | `Game.Tests.EditMode` | `Assets/Tests/EditMode/Game.Tests.EditMode.asmdef` | 에디터 전용, `Game` 참조, NUnit |
 
@@ -19,7 +19,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 - 에디터: Window > General > Test Runner > EditMode.
 - 열려 있는 에디터에 CLI로 실행하려면 `TestRunnerApi`를 `runSynchronously = true`로 호출하는 스크립트를 `unity command run_script`로 돌린다(`unity test`는 프로젝트를 여는 별도 에디터 프로세스를 띄우므로 이미 열린 프로젝트와 충돌한다).
 
-## 현재 범위 (83개)
+## 현재 범위 (122개)
 
 | 파일 | 대상 |
 |---|---|
@@ -27,6 +27,9 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 | `GridItemDragMoverTests` | 이동, 회전 적용, 점유된 칸 → 자동 배치, 대상이 가득 차면 **원래 칸·원래 방향으로 복귀**, 스택 병합 시 수량 보존, 낡은 참조 무시 |
 | `DialogueRunnerTests` | 줄 진행·로그, 타이핑 중 Submit 무시, 선택지 조건·가시 인덱스, Branch, `SetFlag`, 핸들러 없는 이벤트, 모달 일시정지와 수락/거절 분기, **취소**(스킵 불가도 가능, 다시 시작하면 진입 노드부터)와 취소 후 늦은 모달 완료 무시, **빨리 넘기기**(이벤트 실행·선택지/모달/끝에서 정지·Wait 통과·스킵 불가 무시·무한 루프 차단), Wait, 없는 노드·무한 루프·빈 선택지 종료 |
 | `ContainerTests` | 내용물 스냅샷·복원, 스냅샷 독립성, 안 맞는 칸 overflow, `Detach`(내용물 동봉·슬롯 비움), `EquipWithContents`(교체 시 옛 컨테이너가 자기 내용물과 함께 나옴), 컨테이너 스포너/픽업, `Drop` 확장 |
+| `DialogueMarkupTests` | 태그 파싱: 평문 인덱스(한글 문장), 중첩·인자·기본값, 색 이름/hex, 모르는 태그·`<`·`<waves>`는 글자 그대로, `\<` 이스케이프, 안 닫힘/짝 안 맞음/바깥 태그가 안쪽을 닫음 + 경고, 빈 구간 제거, `pause` 위치, 대소문자, 레지스트리 확장, `ToStaticMarkup`(안쪽 색 우선·`<` 이스케이프) |
+| `TextEffectTests` | `sway`(좌우만·진폭·글자별 위상·주기), `wave`(상하만), 효과 오프셋 합산, `shake`(결정적·진폭 안·한 스텝 동안 유지·글자별 다름), `color`, `rainbow`(시간/글자별 변화·알파 유지·주기) |
+| `TextTypistTests` | 타이핑 속도, `pause`(그 자리에서 멈춤·정확한 시간·맨 앞/맨 끝), `Complete`, 속도 0에서 멈춤 없음, 빈 텍스트, `Reset` |
 | `DialogueFlagStoreTests` | 플래그·변경 이벤트, 저장 왕복, `Clear` |
 | `ItemDatabaseTests` | id 조회, 빈/중복/null 검출 |
 | `DropPlacementTests` / `DropPlacementGroundTests` | 흩뿌리기(단일, 간격, 결정성), 지면 탐색(트리거·`Rigidbody`·인터랙터블 무시), 지면에 얹기 |

@@ -34,6 +34,10 @@ graph TD
 - **`DialoguePlayer`** — 씬의 composition root. 러너를 만들고 뷰·핸들러를 연결하며, 재생 중에 `WindowManager`의 **입력 차단자**로 등록한다. `DialoguePlayer.Instance`로 `DialogueInteractable`이 찾는다(플레이어처럼 씬마다 프리팹이 아니라 씬 오브젝트라서).
 - **`DialogueInteractable`** — 기존 골격(`Interact`가 TODO)을 채운 것. `Game.Dialogue`로 옮겼다: `Game.Interaction`에 두면 Interaction → Dialogue → Items → Interaction 순환이 생기기 때문(`WorldItem`이 `IInteractable`을 구현). `sequence`가 없거나 대화 중이면 `CanInteract`가 false라 프롬프트도 안 뜬다.
 
+## 대사 안의 색·움직임 연출
+
+대사 문자열에 `<wave>`, `<sway>`, `<shake>`, `<rainbow>`, `<color=#4aa3ff>`, `<pause=0.5>` 같은 인라인 태그를 쓴다. 러너·노드는 그대로이고 뷰(`DialogueBoxUIView`)가 파싱해서 본문에 애니메이션으로 적용하고, 로그와 선택지에는 색만 남겨 보여 준다. 설계·태그 문법·구현 결과는 [dialogue-text-effects.md](dialogue-text-effects.md).
+
 ## 입력 (`DialogueInputHandler`)
 
 새 Action Map 없이 프로젝트 관례대로 `Keyboard.current`를 폴링한다(기획 문서 4.2의 `Submit`/`Navigate`/`Cancel`에 해당하는 기본 키).
@@ -75,4 +79,4 @@ graph TD
 - **퀘스트/상점 모달 이벤트 핸들러** — 인터페이스는 준비됨, 구현은 해당 시스템 이후.
 - 화자 강조(`focusTarget`), 타이핑 속도 설정 화면 연동(현재 `DialogueBoxUIView.charactersPerSecond` 인스펙터 값), 디버그 콘솔(F1) 시퀀스 점프(`DialogueTestHarness`가 임시로 대신함), 노드 그래프 저작 툴 — 후속.
 - 대화 로그는 스크롤 없이 마지막 줄부터 보이는 단순 텍스트다(긴 대화는 위가 잘림).
-- `Text`(레거시 UGUI) 기본 폰트를 쓴다 — 한글이 실제로 나오는지는 에디터에서 확인 필요(빌드 환경 폰트에 의존).
+- **대화 UI는 TextMeshPro**(2026-09-20)이고, 폰트는 `Assets/Fonts`의 NeoHyundai로 만든 동적 TMP 폰트 애셋이다(`DialogueBoxUIView.fontOverride`, [dialogue-text-effects.md](dialogue-text-effects.md)). 다른 UI(HUD·프롬프트 등)는 아직 레거시 `Text`.
