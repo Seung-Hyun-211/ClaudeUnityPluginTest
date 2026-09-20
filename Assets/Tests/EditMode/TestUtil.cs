@@ -84,6 +84,15 @@ namespace Game.Tests
             return grid;
         }
 
+        protected ContainerEquipmentController MakeEquipment()
+        {
+            var equipment = AddComponent<ContainerEquipmentController>();
+            Set(equipment, "pocketGrid", MakeGrid(4, 2));
+            Set(equipment, "rigGrid", AddComponent<GridInventory>());
+            Set(equipment, "backpackGrid", AddComponent<GridInventory>());
+            return equipment;
+        }
+
         protected ItemDatabase MakeDatabase(params ItemData[] items)
         {
             var database = NewAsset<ItemDatabase>();

@@ -111,6 +111,22 @@ namespace Game.Tests
         }
 
         [Test]
+        public void TryAddItem_MergingIntoAnExistingStack_RaisesGridChangedSoViewsRedraw()
+        {
+            var grid = MakeGrid(4, 2);
+            var coin = MakeItem("coin", 1, 1, 10);
+            grid.TryAddItem(coin, 3);
+            int changes = 0;
+            grid.GridChanged += () => changes++;
+
+            grid.TryAddItem(coin, 4);   // fits entirely into the existing stack: no new stack is placed
+
+            Assert.AreEqual(7, grid.PlacedItems[0].Stack.Quantity);
+            Assert.AreEqual(1, grid.PlacedItems.Count);
+            Assert.Greater(changes, 0, "the visible count would stay stale without a change event");
+        }
+
+        [Test]
         public void SetShape_SmallerShape_EvictsItemsThatNoLongerFit()
         {
             var grid = MakeGrid(4, 2);

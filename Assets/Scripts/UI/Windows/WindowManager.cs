@@ -44,7 +44,10 @@ namespace Game.UI.Windows
         /// being off (see design-conflict-review.md #3) without an actual
         /// Input System action map split.
         /// </summary>
-        public bool IsAnyWindowOpen => currentFullScreen != null || popupStack.Count > 0 || inputBlockers.Count > 0;
+        public bool IsAnyWindowOpen => IsWindowOpen || inputBlockers.Count > 0;
+
+        /// <summary>A real full-screen window or popup is open (input blockers such as a dialogue box do not count).</summary>
+        public bool IsWindowOpen => currentFullScreen != null || popupStack.Count > 0;
 
         /// <summary>
         /// Lets something that is not a window (a dialogue box) gate gameplay

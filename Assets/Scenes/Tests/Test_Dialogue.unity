@@ -646,8 +646,8 @@ MonoBehaviour:
   upKeys: 250000003f000000
   downKeys: 2100000040000000
   cancelKey: 60
-  tapMaxSeconds: 0.2
-  holdSeconds: 0.5
+  skipKey: 3
+  logKey: 26
 --- !u!4 &734972860
 Transform:
   m_ObjectHideFlags: 0
@@ -912,6 +912,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4122581563129199748, guid: e75f245959dad4b408db407b3a277c61, type: 3}
+      propertyPath: windowManager
+      value: 
+      objectReference: {fileID: 2086369151}
     - target: {fileID: 4992449419517534278, guid: e75f245959dad4b408db407b3a277c61, type: 3}
       propertyPath: windowManager
       value: 

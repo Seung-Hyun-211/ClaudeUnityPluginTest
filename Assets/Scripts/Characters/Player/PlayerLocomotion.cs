@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Game.Characters;
+using Game.UI.Windows;
 
 namespace Game.Characters.Player
 {
@@ -21,6 +22,7 @@ namespace Game.Characters.Player
         [SerializeField, Min(0f)] private float jumpImpulse = 5f;
         [SerializeField] private Key sprintKey = Key.LeftShift;
         [SerializeField] private Key jumpKey = Key.Space;
+        [SerializeField] private WindowManager windowManager;
 
         private float walkSpeed;
         private bool sprintHeld;
@@ -32,7 +34,16 @@ namespace Game.Characters.Player
 
         private void Update()
         {
-            if (Keyboard.current != null)
+            // Space and Shift are read here directly, so they must be gated like
+            // every other gameplay key - otherwise you jump while a dialogue is
+            // open. Optional (null = never gated) so scenes without a
+            // WindowManager still work.
+            bool inputBlocked = windowManager != null && windowManager.IsAnyWindowOpen;
+            if (inputBlocked)
+            {
+                SetSprintHeld(false);
+            }
+            else if (Keyboard.current != null)
             {
                 SetSprintHeld(Keyboard.current[sprintKey].isPressed);
 

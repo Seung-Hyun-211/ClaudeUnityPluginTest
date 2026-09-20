@@ -67,6 +67,7 @@ namespace Game.Items.Grid
                 return quantity;
             }
 
+            bool merged = false;
             if (item.IsStackable)
             {
                 foreach (var placed in placedItems)
@@ -78,9 +79,18 @@ namespace Game.Items.Grid
 
                     if (placed.Stack.Item == item && !placed.Stack.IsFull)
                     {
+                        int before = quantity;
                         quantity = placed.Stack.Add(quantity);
+                        merged |= quantity != before;
                     }
                 }
+            }
+
+            if (merged)
+            {
+                // A merge changes a stack's quantity in place; without this the view
+                // keeps showing the old count until something else redraws it.
+                GridChanged?.Invoke();
             }
 
             while (quantity > 0)

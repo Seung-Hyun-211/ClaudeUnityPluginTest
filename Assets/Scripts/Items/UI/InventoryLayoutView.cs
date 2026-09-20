@@ -44,8 +44,11 @@ namespace Game.Items.UI
 
         private void OnEquipmentSlotClicked(ContainerCategory category)
         {
-            var evicted = equipmentController.Unequip(category);
-            WorldItemFactory.Instance.SpawnAll(evicted, playerVitals.transform.position);
+            var detached = equipmentController.Detach(category);
+            if (detached.HasValue)
+            {
+                WorldItemFactory.Instance.Drop(detached.Value, playerVitals.transform.position);
+            }
         }
 
         private void RefreshEquipmentSlot(ContainerCategory category)

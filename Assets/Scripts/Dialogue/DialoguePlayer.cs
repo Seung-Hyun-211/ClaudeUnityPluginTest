@@ -28,6 +28,9 @@ namespace Game.Dialogue
         public DialogueState State => runner.State;
         public DialogueSequence CurrentSequence => runner.Sequence;
 
+        /// <summary>A real window (a shop, a quest offer) is open on top of the dialogue - it owns the keys (Esc closes it), not the dialogue.</summary>
+        public bool IsModalWindowOpen => windowManager != null && windowManager.IsWindowOpen;
+
         /// <summary>Frame the current sequence started on - input handlers ignore that frame so the key press that opened it does not also advance it.</summary>
         public int StartFrame { get; private set; } = -1;
 
@@ -142,16 +145,26 @@ namespace Game.Dialogue
             }
         }
 
-        /// <summary>Cancel tap: toggles the dialogue log, only between lines (not on the choice screen).</summary>
-        public void OnCancelTap()
+        /// <summary>Esc: abandons the dialogue; talking again starts over from the beginning.</summary>
+        public void OnCancel() => runner.Cancel();
+
+        /// <summary>Skips ahead through lines (running their events) to the next choice or the end - ignored when the sequence is not skippable.</summary>
+        public void OnSkip()
+        {
+            runner.FastForward();
+            if (IsPlaying)
+            {
+                view.CompleteTyping();
+            }
+        }
+
+        /// <summary>Toggles the dialogue history, only between lines (not on the choice screen).</summary>
+        public void OnToggleLog()
         {
             if (runner.State == DialogueState.WaitingForAdvance || view.IsLogOpen)
             {
                 view.ToggleLog(runner.Log);
             }
         }
-
-        /// <summary>Cancel hold: skips the whole sequence (ignored when it is not skippable).</summary>
-        public void OnCancelHold() => runner.Skip();
     }
 }

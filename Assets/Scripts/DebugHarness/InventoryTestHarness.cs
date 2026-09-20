@@ -24,7 +24,7 @@ namespace Game.DebugHarness
             GUILayout.BeginArea(new Rect(10, 10, 460, 420), GUI.skin.box);
             GUILayout.Label("Inventory Test Harness");
             GUILayout.Label("F on the world item now tries Pocket -> Rig -> Backpack grids first (WorldItem -> ContainerEquipmentController), falling back to the flat Inventory only if the interactor has no equipment controller.");
-            GUILayout.Label("Unequip Rig/Backpack below to see evicted items drop back into the world (WorldItemFactory).");
+            GUILayout.Label("Unequip/Equip a Rig or Backpack to see the WHOLE container drop into the world with its items still inside (F to wear it again).");
 
             GUILayout.Space(8);
             GUILayout.Label($"Flat Inventory: {sampleItemSmall.DisplayName} x{flatInventory.GetQuantity(sampleItemSmall)}");
@@ -45,19 +45,19 @@ namespace Game.DebugHarness
             }
             if (GUILayout.Button("Equip Rig"))
             {
-                WorldItemFactory.Instance.SpawnAll(equipment.Equip(rigContainer), transform.position);
+                WorldItemFactory.Instance.Drop(equipment.EquipWithContents(rigContainer, ContainerContents.Empty), transform.position);
             }
             if (GUILayout.Button("Unequip Rig"))
             {
-                WorldItemFactory.Instance.SpawnAll(equipment.Unequip(ContainerCategory.Rig), transform.position);
+                DropDetached(ContainerCategory.Rig);
             }
             if (GUILayout.Button("Equip Backpack"))
             {
-                WorldItemFactory.Instance.SpawnAll(equipment.Equip(backpackContainer), transform.position);
+                WorldItemFactory.Instance.Drop(equipment.EquipWithContents(backpackContainer, ContainerContents.Empty), transform.position);
             }
             if (GUILayout.Button("Unequip Backpack"))
             {
-                WorldItemFactory.Instance.SpawnAll(equipment.Unequip(ContainerCategory.Backpack), transform.position);
+                DropDetached(ContainerCategory.Backpack);
             }
 
             GUILayout.Space(8);
@@ -65,6 +65,15 @@ namespace Game.DebugHarness
             DrawGrid("Rig", ContainerCategory.Rig);
             DrawGrid("Backpack", ContainerCategory.Backpack);
             GUILayout.EndArea();
+        }
+
+        private void DropDetached(ContainerCategory category)
+        {
+            var detached = equipment.Detach(category);
+            if (detached.HasValue)
+            {
+                WorldItemFactory.Instance.Drop(detached.Value, transform.position);
+            }
         }
 
         private void DrawGrid(string label, ContainerCategory category)

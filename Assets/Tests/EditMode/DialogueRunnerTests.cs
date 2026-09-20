@@ -227,14 +227,14 @@ namespace Game.Tests
         }
 
         [Test]
-        public void ModalEvent_CompletingAfterTheSequenceWasSkipped_IsIgnored()
+        public void ModalEvent_CompletingAfterTheDialogueWasCancelled_IsIgnored()
         {
             var run = new Run();
             var handler = new ModalHandler();
             run.Runner.RegisterHandler(handler);
             run.Runner.Start(Sequence("shop", true, Shop("shop", "l"), Line("l", "late", null)), null);
 
-            run.Runner.Skip();
+            run.Runner.Cancel();
             handler.Complete(true);
 
             Assert.AreEqual(0, run.Lines.Count);
@@ -242,19 +242,100 @@ namespace Game.Tests
         }
 
         [Test]
-        public void Skip_EndsASkippableSequence_ButIsIgnoredWhenNotSkippable()
+        public void Cancel_EndsTheDialogueEvenWhenItIsNotSkippable_AndRestartingBeginsAtTheEntry()
         {
-            var skippable = new Run();
-            skippable.Runner.Start(Sequence("a", true, Line("a", "x", "b"), Line("b", "y", null)), null);
-            skippable.Runner.Skip();
-            Assert.AreEqual(DialogueState.Idle, skippable.Runner.State);
-            Assert.AreEqual(1, skippable.Ended);
+            var run = new Run();
+            var sequence = Sequence("a", false, Line("a", "first", "b"), Line("b", "second", null));
+            run.Runner.Start(sequence, null);
+            run.Advance();
+            Assert.AreEqual("second", run.Lines[1]);
 
-            var locked = new Run();
-            locked.Runner.Start(Sequence("a", false, Line("a", "x", "b"), Line("b", "y", null)), null);
-            locked.Runner.Skip();
-            Assert.AreEqual(DialogueState.Playing, locked.Runner.State);
-            Assert.AreEqual(0, locked.Ended);
+            run.Runner.Cancel();
+
+            Assert.AreEqual(DialogueState.Idle, run.Runner.State);
+            Assert.AreEqual(1, run.Ended);
+
+            run.Runner.Start(sequence, null);
+            Assert.AreEqual("first", run.Lines[2], "talking again starts from the entry node");
+            Assert.AreEqual(1, run.Runner.Log.Count, "the history starts fresh too");
+        }
+
+        [Test]
+        public void Cancel_WhenNothingIsPlaying_DoesNothing()
+        {
+            var run = new Run();
+
+            run.Runner.Cancel();
+
+            Assert.AreEqual(0, run.Ended);
+        }
+
+        [Test]
+        public void FastForward_AdvancesThroughLinesRunningEventsUntilTheChoice()
+        {
+            var run = new Run();
+            run.Runner.Start(Sequence("a", true,
+                Line("a", "one", "e"), SetFlag("e", "heard_intro", "b"), Line("b", "two", "c"),
+                Choice("c", Option("ok", "z")), Line("z", "end", null)), null);
+
+            run.Runner.FastForward();
+
+            Assert.AreEqual(DialogueState.ChoicePending, run.Runner.State);
+            Assert.IsTrue(run.Flags.GetFlag("heard_intro"), "skipping must not lose the events on the way");
+            Assert.AreEqual(2, run.Runner.Log.Count);
+            Assert.AreEqual(0, run.Ended);
+        }
+
+        [Test]
+        public void FastForward_ReachesTheEndAndPassesWaits()
+        {
+            var run = new Run();
+            run.Runner.Start(Sequence("a", true, Line("a", "one", "w"), Wait("w", 5f, "b"), Line("b", "two", null)), null);
+
+            run.Runner.FastForward();
+
+            Assert.AreEqual(DialogueState.Idle, run.Runner.State);
+            Assert.AreEqual(1, run.Ended);
+            Assert.AreEqual(2, run.Runner.Log.Count);
+        }
+
+        [Test]
+        public void FastForward_StopsAtAnOpenModal()
+        {
+            var run = new Run();
+            var handler = new ModalHandler();
+            run.Runner.RegisterHandler(handler);
+            run.Runner.Start(Sequence("a", true, Line("a", "one", "shop"), Shop("shop", "b"), Line("b", "after", null)), null);
+
+            run.Runner.FastForward();
+
+            Assert.AreEqual(DialogueState.ModalPending, run.Runner.State);
+            Assert.AreEqual(1, handler.Executions);
+        }
+
+        [Test]
+        public void FastForward_IsIgnoredWhenTheSequenceIsNotSkippable()
+        {
+            var run = new Run();
+            run.Runner.Start(Sequence("a", false, Line("a", "x", "b"), Line("b", "y", null)), null);
+
+            run.Runner.FastForward();
+
+            Assert.AreEqual(DialogueState.Playing, run.Runner.State);
+            Assert.AreEqual(1, run.Lines.Count);
+            Assert.AreEqual(0, run.Ended);
+        }
+
+        [Test]
+        public void FastForward_EndlessLineLoop_IsCutOffWithAnError()
+        {
+            LogAssert.Expect(LogType.Error, new Regex("fast-forwarded through"));
+            var run = new Run();
+
+            run.Runner.Start(Sequence("a", true, Line("a", "x", "b"), Line("b", "y", "a")), null);
+            run.Runner.FastForward();
+
+            Assert.AreEqual(DialogueState.Idle, run.Runner.State);
         }
 
         [Test]

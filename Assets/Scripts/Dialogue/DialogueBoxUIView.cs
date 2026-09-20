@@ -63,8 +63,8 @@ namespace Game.Dialogue
             logPanel.SetActive(false);
             ClearChoices();
             hintText.text = skippable
-                ? "F/Enter: 다음    Esc(탭): 기록    Esc(길게): 건너뛰기"
-                : "F/Enter: 다음    Esc(탭): 기록";
+                ? "F/Enter: 다음    Tab: 건너뛰기    L: 기록    Esc: 취소"
+                : "F/Enter: 다음    L: 기록    Esc: 취소";
         }
 
         public void Hide()

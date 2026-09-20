@@ -238,15 +238,6 @@ namespace Game.Tests
 
     public class SaveProviderTests : TestBase
     {
-        private ContainerEquipmentController MakeEquipment()
-        {
-            var equipment = AddComponent<ContainerEquipmentController>();
-            Set(equipment, "pocketGrid", MakeGrid(4, 2));
-            Set(equipment, "rigGrid", AddComponent<GridInventory>());
-            Set(equipment, "backpackGrid", AddComponent<GridInventory>());
-            return equipment;
-        }
-
         [Test]
         public void ContainerSave_RoundTripsContainersStacksCellsAndRotation()
         {

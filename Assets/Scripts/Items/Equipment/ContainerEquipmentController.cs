@@ -56,6 +56,40 @@ namespace Game.Items.Equipment
             return quantity;
         }
 
+        /// <summary>
+        /// Takes off what is worn in a slot and hands it back WITH its
+        /// contents, leaving the slot empty. This is the gameplay operation
+        /// (drop it, stash it); Unequip below is the low-level shape reset.
+        /// </summary>
+        /// <returns>Null if nothing was worn there.</returns>
+        public EquippedContainer? Detach(ContainerCategory category)
+        {
+            var worn = GetEquipped(category);
+            if (worn == null)
+            {
+                return null;
+            }
+
+            var grid = GetGrid(category);
+            var contents = ContainerContents.Capture(grid);
+            grid.Clear();
+            Unequip(category);
+            return new EquippedContainer(worn, contents);
+        }
+
+        /// <summary>
+        /// Puts a container on together with its contents. Whatever was worn
+        /// in that slot comes off with ITS contents (returned as Replaced), so
+        /// items never get split off a bag that is being swapped out.
+        /// </summary>
+        public EquipResult EquipWithContents(ContainerItemData containerItem, ContainerContents contents)
+        {
+            var replaced = Detach(containerItem.Category);
+            var overflow = Equip(containerItem);
+            overflow.AddRange(contents.RestoreInto(GetGrid(containerItem.Category)));
+            return new EquipResult(replaced, overflow);
+        }
+
         /// <returns>Stacks evicted from the old grid because they no longer fit.</returns>
         public List<ItemStack> Equip(ContainerItemData containerItem)
         {

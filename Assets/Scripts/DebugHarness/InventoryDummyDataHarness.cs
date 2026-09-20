@@ -37,7 +37,7 @@ namespace Game.DebugHarness
                 var shape = container.Shape;
                 if (GUILayout.Button($"{container.DisplayName} [{container.Category} {shape.Width}x{shape.Height}]"))
                 {
-                    WorldItemFactory.Instance.SpawnAll(equipment.Equip(container), transform.position);
+                    WorldItemFactory.Instance.Drop(equipment.EquipWithContents(container, ContainerContents.Empty), transform.position);
                 }
             }
 

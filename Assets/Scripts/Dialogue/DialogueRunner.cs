@@ -8,7 +8,7 @@ namespace Game.Dialogue
     /// Plays a DialogueSequence: walks the node graph and exposes the
     /// playback state machine (Docs/기획문서_대화시네마틱구조설계.md ch.3). Pure C#
     /// with no UI or input - it raises events and is driven through
-    /// Submit/Choose/Skip/Tick, which makes it testable and lets any view
+    /// Submit/Choose/FastForward/Cancel/Tick, which makes it testable and lets any view
     /// present it.
     /// </summary>
     public class DialogueRunner
@@ -83,13 +83,55 @@ namespace Game.Dialogue
             Enter(visibleChoices[visibleIndex].nextNodeId);
         }
 
-        /// <summary>Jumps straight to the end; ignored for non-skippable sequences.</summary>
-        public void Skip()
+        /// <summary>
+        /// Abandons the dialogue right now (Esc). Nothing further runs; talking
+        /// to the NPC again starts the sequence over from its entry node.
+        /// Always allowed - it does not advance the story.
+        /// </summary>
+        public void Cancel()
         {
-            if (State != DialogueState.Idle && Sequence.Skippable)
+            if (State != DialogueState.Idle)
             {
                 Finish();
             }
+        }
+
+        /// <summary>
+        /// Skips ahead: completes and advances past lines and waits, running
+        /// the events on the way (flags, rewards), until it reaches something
+        /// that needs the player - a choice, an open modal - or the end.
+        /// Ignored for non-skippable sequences.
+        /// </summary>
+        public void FastForward()
+        {
+            if (State == DialogueState.Idle || !Sequence.Skippable)
+            {
+                return;
+            }
+
+            for (int steps = 0; steps < MaxAutoSteps; steps++)
+            {
+                if (State == DialogueState.Playing)
+                {
+                    NotifyLineFullyShown();
+                }
+
+                if (State == DialogueState.WaitingForAdvance)
+                {
+                    Submit();
+                }
+                else if (State == DialogueState.Waiting)
+                {
+                    Enter(currentNode.nextNodeId);
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            Debug.LogError($"Dialogue [{Sequence.SequenceId}] fast-forwarded through {MaxAutoSteps} lines without reaching a choice or the end - ending it.");
+            Finish();
         }
 
         public void Tick(float deltaTime)
