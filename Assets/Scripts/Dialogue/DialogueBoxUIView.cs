@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,7 +11,9 @@ namespace Game.Dialogue
     /// The text-dialogue presentation (bottom box with portrait, speaker name,
     /// typed-out body, choices above the box, and a history log overlay) -
     /// Docs/기획문서_대화시네마틱구조설계.md ch.4. Contains no playback logic; the
-    /// DialoguePlayer drives it through IDialogueView.
+    /// DialoguePlayer drives it through IDialogueView. Lines may carry effect
+    /// markup (documents/dialogue-text-effects.md): the body is typed out with
+    /// the effects animated; the log and choices show the static colours only.
     /// </summary>
     public class DialogueBoxUIView : MonoBehaviour, IDialogueView
     {
@@ -18,27 +21,40 @@ namespace Game.Dialogue
 
         [SerializeField] private GameObject root;
         [SerializeField] private Image portraitImage;
-        [SerializeField] private Text speakerText;
-        [SerializeField] private Text bodyText;
+        [SerializeField] private TMP_Text speakerText;
+        [SerializeField] private TMP_Text bodyText;
+        [SerializeField] private DialogueTextAnimator bodyAnimator;
         [SerializeField] private GameObject continueIndicator;
-        [SerializeField] private Text hintText;
+        [SerializeField] private TMP_Text hintText;
         [SerializeField] private RectTransform choiceContainer;
         [SerializeField] private Button choiceButtonPrefab;
         [SerializeField] private GameObject logPanel;
-        [SerializeField] private Text logText;
+        [SerializeField] private TMP_Text logText;
         [SerializeField, Min(0f)] private float charactersPerSecond = 40f;
 
-        private readonly List<Text> choiceLabels = new();
+        [Tooltip("Font for every label in the box (incl. choices). Empty = keep each label's own font.")]
+        [SerializeField] private TMP_FontAsset fontOverride;
+
+        private readonly List<TMP_Text> choiceLabels = new();
+        private readonly TextTypist typist = new();
         private Action<int> onChosen;
         private Action onFullyShown;
-        private string fullText = string.Empty;
-        private float shownCharacters;
         private bool typing;
         private int focusedChoice;
 
         public bool IsLogOpen => logPanel != null && logPanel.activeSelf;
 
-        private void Awake() => root.SetActive(false);
+        private void Awake()
+        {
+            ApplyFont(speakerText);
+            ApplyFont(bodyText);
+            ApplyFont(hintText);
+            ApplyFont(logText);
+
+            // The body is laid out from the parsed plain text; TMP must not interpret it again.
+            bodyText.richText = false;
+            root.SetActive(false);
+        }
 
         private void Update()
         {
@@ -47,13 +63,20 @@ namespace Game.Dialogue
                 return;
             }
 
-            shownCharacters += charactersPerSecond * Time.unscaledDeltaTime;
-            int count = Mathf.Min(fullText.Length, Mathf.FloorToInt(shownCharacters));
-            bodyText.text = fullText.Substring(0, count);
+            typist.Advance(Time.unscaledDeltaTime, charactersPerSecond);
+            bodyText.maxVisibleCharacters = typist.VisibleCount;
 
-            if (count >= fullText.Length)
+            if (typist.IsDone)
             {
                 FinishTyping();
+            }
+        }
+
+        private void ApplyFont(TMP_Text label)
+        {
+            if (fontOverride != null && label != null)
+            {
+                label.font = fontOverride;
             }
         }
 
@@ -82,19 +105,30 @@ namespace Game.Dialogue
             portraitImage.sprite = portrait;
             portraitImage.gameObject.SetActive(portrait != null);
 
-            fullText = text ?? string.Empty;
+            var parsed = DialogueMarkup.Parse(text);
+            foreach (var warning in parsed.Warnings)
+            {
+                Debug.LogWarning($"Dialogue text markup: {warning}");
+            }
+
             onFullyShown = fullyShown;
             continueIndicator.SetActive(false);
 
-            if (charactersPerSecond <= 0f || fullText.Length == 0)
+            // The whole line is laid out up front and only revealed, so words do not jump between lines while typing.
+            bodyText.text = parsed.Plain;
+            if (bodyAnimator != null)
             {
-                bodyText.text = fullText;
+                bodyAnimator.SetSpans(parsed.Spans);
+            }
+
+            if (charactersPerSecond <= 0f || parsed.Plain.Length == 0)
+            {
                 FinishTyping();
                 return;
             }
 
-            shownCharacters = 0f;
-            bodyText.text = string.Empty;
+            typist.Reset(parsed.Plain.Length, parsed.Pauses);
+            bodyText.maxVisibleCharacters = 0;
             typing = true;
         }
 
@@ -102,13 +136,14 @@ namespace Game.Dialogue
         {
             if (typing)
             {
-                bodyText.text = fullText;
+                typist.Complete();
                 FinishTyping();
             }
         }
 
         private void FinishTyping()
         {
+            bodyText.maxVisibleCharacters = int.MaxValue;
             typing = false;
             continueIndicator.SetActive(true);
             onFullyShown?.Invoke();
@@ -124,8 +159,9 @@ namespace Game.Dialogue
             {
                 int index = i;
                 var button = Instantiate(choiceButtonPrefab, choiceContainer);
-                var label = button.GetComponentInChildren<Text>();
-                label.text = options[i].text;
+                var label = button.GetComponentInChildren<TMP_Text>();
+                ApplyFont(label);
+                label.text = DialogueMarkup.Parse(options[i].text).ToStaticMarkup();
                 button.onClick.AddListener(() => Choose(index));
                 choiceLabels.Add(label);
             }
@@ -166,7 +202,7 @@ namespace Game.Dialogue
             foreach (var entry in log)
             {
                 builder.Append(string.IsNullOrEmpty(entry.Speaker) ? string.Empty : entry.Speaker + ": ");
-                builder.AppendLine(entry.Text);
+                builder.AppendLine(DialogueMarkup.Parse(entry.Text).ToStaticMarkup());
             }
             logText.text = builder.ToString();
         }
