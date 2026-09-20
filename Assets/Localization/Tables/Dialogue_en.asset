@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Dialogue_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: f62e1c1689fc64640bf6641ee5465afb, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 683757568
+    m_Localized: Elder
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951882
+    m_Localized: Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 633425920
+    m_Localized: Welcome, traveler. <wave>Guests</wave> are rare in this village.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951872
+    m_Localized: <color=#4aa3ff><sway>What business</sway></color> brings you to
+      this village?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951873
+    m_Localized: You're back. Anything else you want to know?
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951874
+    m_Localized: I need help.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951875
+    m_Localized: Just looking around.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951876
+    m_Localized: (I was helped) Thank them.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951877
+    m_Localized: Then take these coins.<pause=0.6> It's not much, but it should help.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951878
+    m_Localized: Take care. Stay out of the woods at <shake>night</shake>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951879
+    m_Localized: After I grew up, I set off on a journey carrying <color=#4aa3ff><sway>a
+      longing for the place I was born</sway></color> and <color=#4aa3ff><sway>a
+      curiosity about the secrets hidden in the village</sway></color>.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951880
+    m_Localized: Heh, don't mention it. <rainbow>Come back alive.</rainbow>
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951881
+    m_Localized: Halt. No entry beyond this point.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951883
+    m_Localized: This story can't be skipped. Listen to the end.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 687951884
+    m_Localized: ...Understood? Then go back.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

@@ -16,26 +16,33 @@ namespace Game.Dialogue
         private const int MaxAutoSteps = 1000;
 
         private readonly IDialogueFlags flags;
+        private readonly IDialogueTextResolver texts;
         private readonly Dictionary<DialogueEventType, IDialogueEventHandler> handlers = new();
         private readonly List<DialogueLogEntry> log = new();
         private readonly List<DialogueChoiceOption> visibleChoices = new();
+        private readonly List<string> visibleLabels = new();
 
         private GameObject interactor;
         private DialogueNode currentNode;
         private float waitRemaining;
         private int session;
 
-        public DialogueRunner(IDialogueFlags flags)
+        /// <param name="textResolver">Turns node text into the current language; null = the authored text.</param>
+        public DialogueRunner(IDialogueFlags flags, IDialogueTextResolver textResolver = null)
         {
             this.flags = flags;
+            texts = textResolver ?? AuthoredTextResolver.Instance;
         }
 
         public DialogueState State { get; private set; }
         public DialogueSequence Sequence { get; private set; }
         public IReadOnlyList<DialogueLogEntry> Log => log;
 
-        public event Action<DialogueNode> LineShown;
-        public event Action<IReadOnlyList<DialogueChoiceOption>> ChoicesShown;
+        /// <summary>A line to show, already resolved to the current language.</summary>
+        public event Action<DialogueLine> LineShown;
+
+        /// <summary>The visible option labels (current language), in the order Choose expects.</summary>
+        public event Action<IReadOnlyList<string>> ChoicesShown;
         public event Action Ended;
 
         public void RegisterHandler(IDialogueEventHandler handler) => handlers[handler.EventType] = handler;
@@ -179,8 +186,12 @@ namespace Game.Dialogue
                 {
                     case DialogueNodeType.Line:
                         State = DialogueState.Playing;
-                        log.Add(new DialogueLogEntry(node.speakerName, node.text));
-                        LineShown?.Invoke(node);
+                        var line = new DialogueLine(
+                            texts.Resolve(node.localizedSpeaker, node.speakerName),
+                            texts.Resolve(node.localizedText, node.text),
+                            node.portrait);
+                        log.Add(new DialogueLogEntry(line.Speaker, line.Text));
+                        LineShown?.Invoke(line);
                         return;
 
                     case DialogueNodeType.Choice:
@@ -222,6 +233,7 @@ namespace Game.Dialogue
         private bool ShowChoices(DialogueNode node)
         {
             visibleChoices.Clear();
+            visibleLabels.Clear();
             if (node.choices != null)
             {
                 foreach (var option in node.choices)
@@ -229,6 +241,7 @@ namespace Game.Dialogue
                     if (option.condition.IsMet(flags))
                     {
                         visibleChoices.Add(option);
+                        visibleLabels.Add(texts.Resolve(option.localizedText, option.text));
                     }
                 }
             }
@@ -240,7 +253,7 @@ namespace Game.Dialogue
             }
 
             State = DialogueState.ChoicePending;
-            ChoicesShown?.Invoke(visibleChoices);
+            ChoicesShown?.Invoke(visibleLabels);
             return true;
         }
 

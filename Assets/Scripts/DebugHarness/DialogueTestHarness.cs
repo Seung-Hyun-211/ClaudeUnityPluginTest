@@ -1,5 +1,6 @@
 using System.Text;
 using UnityEngine;
+using UnityEngine.Localization.Settings;
 using Game.Dialogue;
 
 namespace Game.DebugHarness
@@ -17,7 +18,7 @@ namespace Game.DebugHarness
 
         private void OnGUI()
         {
-            GUILayout.BeginArea(new Rect(10, 10, 360, 220), GUI.skin.box);
+            GUILayout.BeginArea(new Rect(10, 10, 360, 260), GUI.skin.box);
             GUILayout.Label("WASD move. Walk next to an NPC and press F to talk.");
             GUILayout.Label($"State: {(player.IsPlaying ? player.State.ToString() : "Idle")}");
 
@@ -40,7 +41,30 @@ namespace Game.DebugHarness
             {
                 flags.Clear();
             }
+
+            LanguageButtons();
             GUILayout.EndArea();
+        }
+
+        // The language applies from the next line on (a line already on screen is not re-resolved).
+        private static void LanguageButtons()
+        {
+            if (!LocalizationSettings.InitializationOperation.IsDone)
+            {
+                GUILayout.Label("Language: loading...");
+                return;
+            }
+
+            GUILayout.Label($"Language: {LocalizationSettings.SelectedLocale}");
+            GUILayout.BeginHorizontal();
+            foreach (var locale in LocalizationSettings.AvailableLocales.Locales)
+            {
+                if (GUILayout.Button(locale.Identifier.Code))
+                {
+                    LocalizationSettings.SelectedLocale = locale;
+                }
+            }
+            GUILayout.EndHorizontal();
         }
     }
 }

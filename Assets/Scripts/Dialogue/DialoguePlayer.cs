@@ -43,12 +43,12 @@ namespace Game.Dialogue
                 return;
             }
 
-            runner = new DialogueRunner(flagStore);
+            runner = new DialogueRunner(flagStore, new LocalizationTextResolver());
             runner.RegisterHandler(new SetFlagEventHandler());
             runner.RegisterHandler(new GiveItemEventHandler());
 
-            runner.LineShown += node => view.ShowLine(node.speakerName, node.text, node.portrait, runner.NotifyLineFullyShown);
-            runner.ChoicesShown += options => view.ShowChoices(options, runner.Choose);
+            runner.LineShown += line => view.ShowLine(line.Speaker, line.Text, line.Portrait, runner.NotifyLineFullyShown);
+            runner.ChoicesShown += labels => view.ShowChoices(labels, runner.Choose);
             runner.Ended += HandleEnded;
         }
 

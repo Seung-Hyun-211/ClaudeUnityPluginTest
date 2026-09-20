@@ -22,6 +22,24 @@ MonoBehaviour:
     text: "\uBA48\uCDB0\uB77C. \uC5EC\uAE30\uC11C\uBD80\uD130\uB294 \uCD9C\uC785
       \uAE08\uC9C0\uB2E4."
     portrait: {fileID: 0}
+    localizedSpeaker:
+      m_TableReference:
+        m_TableCollectionName: Dialogue
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: "speaker.\uACBD\uBE44\uBCD1"
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    localizedText:
+      m_TableReference:
+        m_TableCollectionName: Dialogue
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: guard_locked.g1
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
     nextNodeId: g2
     choices: []
     condition:
@@ -41,6 +59,24 @@ MonoBehaviour:
     text: "\uC774 \uC0AC\uC2E4\uC740 \uC774\uC57C\uAE30\uB97C \uAC74\uB108\uB6F8
       \uC218 \uC5C6\uB2E4. \uB05D\uAE4C\uC9C0 \uB4E4\uC5B4\uB77C."
     portrait: {fileID: 0}
+    localizedSpeaker:
+      m_TableReference:
+        m_TableCollectionName: Dialogue
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: "speaker.\uACBD\uBE44\uBCD1"
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    localizedText:
+      m_TableReference:
+        m_TableCollectionName: Dialogue
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: guard_locked.g2
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
     nextNodeId: w
     choices: []
     condition:
@@ -59,6 +95,24 @@ MonoBehaviour:
     speakerName: 
     text: 
     portrait: {fileID: 0}
+    localizedSpeaker:
+      m_TableReference:
+        m_TableCollectionName: 
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    localizedText:
+      m_TableReference:
+        m_TableCollectionName: 
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: 
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
     nextNodeId: g3
     choices: []
     condition:
@@ -77,6 +131,24 @@ MonoBehaviour:
     speakerName: "\uACBD\uBE44\uBCD1"
     text: "...\uC54C\uACA0\uB098? \uADF8\uB7FC \uB3CC\uC544\uAC00\uB77C."
     portrait: {fileID: 0}
+    localizedSpeaker:
+      m_TableReference:
+        m_TableCollectionName: Dialogue
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: "speaker.\uACBD\uBE44\uBCD1"
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
+    localizedText:
+      m_TableReference:
+        m_TableCollectionName: Dialogue
+      m_TableEntryReference:
+        m_KeyId: 0
+        m_Key: guard_locked.g3
+      m_FallbackState: 0
+      m_WaitForCompletion: 0
+      m_LocalVariables: []
     nextNodeId: 
     choices: []
     condition:
@@ -90,3 +162,6 @@ MonoBehaviour:
     eventCount: 1
     nextNodeIfDeclinedId: 
     duration: 0
+  references:
+    version: 2
+    RefIds: []

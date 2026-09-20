@@ -149,19 +149,19 @@ namespace Game.Dialogue
             onFullyShown?.Invoke();
         }
 
-        public void ShowChoices(IReadOnlyList<DialogueChoiceOption> options, Action<int> chosenCallback)
+        public void ShowChoices(IReadOnlyList<string> labels, Action<int> chosenCallback)
         {
             ClearChoices();
             continueIndicator.SetActive(false);
             onChosen = chosenCallback;
 
-            for (int i = 0; i < options.Count; i++)
+            for (int i = 0; i < labels.Count; i++)
             {
                 int index = i;
                 var button = Instantiate(choiceButtonPrefab, choiceContainer);
                 var label = button.GetComponentInChildren<TMP_Text>();
                 ApplyFont(label);
-                label.text = DialogueMarkup.Parse(options[i].text).ToStaticMarkup();
+                label.text = DialogueMarkup.Parse(labels[i]).ToStaticMarkup();
                 button.onClick.AddListener(() => Choose(index));
                 choiceLabels.Add(label);
             }

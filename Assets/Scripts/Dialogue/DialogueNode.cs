@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Localization;
 using Game.Items;
 
 namespace Game.Dialogue
@@ -18,9 +19,14 @@ namespace Game.Dialogue
         public DialogueNodeType type;
 
         // Line
+        [Tooltip("Source-language text; also the fallback when there is no translation. Written with effect markup (documents/dialogue-text-effects.md).")]
         public string speakerName;
         [TextArea(2, 5)] public string text;
         public Sprite portrait;
+
+        [Tooltip("String-table entries for the speaker and text; filled in by Game > Dialogue > Sync Sequences To String Table.")]
+        public LocalizedString localizedSpeaker;
+        public LocalizedString localizedText;
 
         // Line / Event / Wait: the following node. Branch: node when the condition is met.
         public string nextNodeId;

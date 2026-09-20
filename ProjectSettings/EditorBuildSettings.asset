@@ -33,4 +33,6 @@ EditorBuildSettings:
     path: Assets/Scenes/Tests/Test_Dialogue.unity
     guid: 039f3942e4cb8494a824f14099829dca
   m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: 06b25c572460ea94f8d5197f8bdb4815, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+    com.unity.localization.settings: {fileID: 11400000, guid: ecb80774ac28ce44a91f9f8d72954c2b, type: 2}

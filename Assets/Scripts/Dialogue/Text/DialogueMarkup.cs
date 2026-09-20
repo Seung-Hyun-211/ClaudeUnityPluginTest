@@ -23,6 +23,14 @@ namespace Game.Dialogue
             public int SpanSlot;
         }
 
+        private sealed class SpanBuilder
+        {
+            public int Start;
+            public int End;
+            public ITextEffect Effect;
+            public string Tag;
+        }
+
         public static ParsedText Parse(string source, TextEffectRegistry registry = null)
         {
             registry ??= TextEffectRegistry.Default;
@@ -31,7 +39,7 @@ namespace Game.Dialogue
             var plain = new StringBuilder(source.Length);
             var stack = new List<OpenTag>();
             // Spans are stored in the order their tags opened (callers rely on that for "innermost wins").
-            var slots = new List<(int start, int end, ITextEffect effect)>();
+            var slots = new List<SpanBuilder>();
             var pauses = new List<TextPause>();
             var warnings = new List<string>();
 
@@ -71,15 +79,15 @@ namespace Game.Dialogue
             foreach (var tag in stack)
             {
                 warnings.Add($"<{tag.Name}> is never closed; it runs to the end of the line.");
-                slots[tag.SpanSlot] = (slots[tag.SpanSlot].start, plain.Length, slots[tag.SpanSlot].effect);
+                slots[tag.SpanSlot].End = plain.Length;
             }
 
             var spans = new List<TextSpan>(slots.Count);
-            foreach (var (start, end, effect) in slots)
+            foreach (var slot in slots)
             {
-                if (end > start)
+                if (slot.End > slot.Start)
                 {
-                    spans.Add(new TextSpan(start, end - start, effect));
+                    spans.Add(new TextSpan(slot.Start, slot.End - slot.Start, slot.Effect, slot.Tag));
                 }
             }
 
@@ -92,7 +100,7 @@ namespace Game.Dialogue
         }
 
         private static bool Open(string name, string rawArgs, int plainLength, TextEffectRegistry registry,
-            List<OpenTag> stack, List<(int start, int end, ITextEffect effect)> slots, List<TextPause> pauses, List<string> warnings)
+            List<OpenTag> stack, List<SpanBuilder> slots, List<TextPause> pauses, List<string> warnings)
         {
             var args = TextTagArgs.Parse(rawArgs);
 
@@ -116,12 +124,12 @@ namespace Game.Dialogue
             }
 
             stack.Add(new OpenTag { Name = name, Start = plainLength, Effect = effect, SpanSlot = slots.Count });
-            slots.Add((plainLength, -1, effect));
+            slots.Add(new SpanBuilder { Start = plainLength, End = -1, Effect = effect, Tag = name.ToLowerInvariant() + rawArgs.TrimEnd() });
             return true;
         }
 
         private static void Close(string name, int plainLength, List<OpenTag> stack,
-            List<(int start, int end, ITextEffect effect)> slots, List<string> warnings)
+            List<SpanBuilder> slots, List<string> warnings)
         {
             int match = stack.FindLastIndex(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
             if (match < 0)
@@ -139,7 +147,7 @@ namespace Game.Dialogue
                 }
 
                 var tag = stack[k];
-                slots[tag.SpanSlot] = (slots[tag.SpanSlot].start, plainLength, tag.Effect);
+                slots[tag.SpanSlot].End = plainLength;
                 stack.RemoveAt(k);
             }
         }

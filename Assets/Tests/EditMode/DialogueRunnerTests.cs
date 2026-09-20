@@ -66,15 +66,15 @@ namespace Game.Tests
             public readonly Flags Flags = new();
             public readonly DialogueRunner Runner;
             public readonly List<string> Lines = new();
-            public IReadOnlyList<DialogueChoiceOption> Choices;
+            public IReadOnlyList<string> Choices;
             public int Ended;
 
             public Run()
             {
                 Runner = new DialogueRunner(Flags);
                 Runner.RegisterHandler(new SetFlagEventHandler());
-                Runner.LineShown += node => Lines.Add(node.text);
-                Runner.ChoicesShown += options => Choices = options;
+                Runner.LineShown += line => Lines.Add(line.Text);
+                Runner.ChoicesShown += labels => Choices = labels;
                 Runner.Ended += () => Ended++;
             }
 

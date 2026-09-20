@@ -22,7 +22,8 @@ namespace Game.Dialogue
         /// <summary>Reveals the whole current line at once (Submit while typing).</summary>
         void CompleteTyping();
 
-        void ShowChoices(IReadOnlyList<DialogueChoiceOption> options, Action<int> onChosen);
+        /// <summary>Labels of the visible options in the current language (may carry effect markup); onChosen gets the index into this list.</summary>
+        void ShowChoices(IReadOnlyList<string> labels, Action<int> onChosen);
         void MoveChoiceFocus(int delta);
         void ConfirmFocusedChoice();
 

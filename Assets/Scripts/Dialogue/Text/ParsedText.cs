@@ -7,16 +7,20 @@ namespace Game.Dialogue
     /// <summary>An effect applied to plain-text characters [Start, Start + Length).</summary>
     public readonly struct TextSpan
     {
-        public TextSpan(int start, int length, ITextEffect effect)
+        public TextSpan(int start, int length, ITextEffect effect, string tag = null)
         {
             Start = start;
             Length = length;
             Effect = effect;
+            Tag = tag ?? string.Empty;
         }
 
         public int Start { get; }
         public int Length { get; }
         public ITextEffect Effect { get; }
+
+        /// <summary>The opening tag as written, normalised ("color=#4aa3ff", "wave amp=4") - for validation and debugging.</summary>
+        public string Tag { get; }
 
         public bool Covers(int index) => index >= Start && index < Start + Length;
     }
