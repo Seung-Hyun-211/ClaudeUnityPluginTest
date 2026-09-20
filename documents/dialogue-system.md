@@ -26,8 +26,8 @@ graph TD
     Input --> Player
 ```
 
-- **`DialogueRunner`** — UI·입력이 없는 순수 C#. `Start/Submit/Choose/Skip/Tick`으로 구동하고 `LineShown`/`ChoicesShown`/`Ended` 이벤트를 낸다. 그래서 뷰를 갈아끼울 수 있고 로직을 단독으로 테스트할 수 있다(의존성 역전). 노드를 순회하다가 `Branch`/`Event`는 즉시 처리하고, `Line`/`Choice`/`Wait`에서 멈춘다. 분기 루프 보호(1000 스텝), 없는 노드 id는 경고 후 종료.
-- **`DialogueSequence` / `DialogueNode`** — 노드는 `type` 값에 따라 쓰는 필드가 달라지는 **평면 직렬화 클래스** 하나다. 타입별 서브클래스는 Unity 인스펙터에서 `[SerializeReference]` 다형 리스트를 편집할 방법이 없어서 피했다(기획 문서의 "id, type, data(타입별 필드)" 구조와 동일). 다음 노드 id가 비어 있으면 시퀀스 종료. 노드 타입: `Line`/`Choice`/`Branch`/`Event`/`Wait`/`End`. `Skippable`이 false면 Cancel 홀드 스킵이 무시된다.
+- **`DialogueRunner`** — UI·입력이 없는 순수 C#. `Start/Submit/Choose/FastForward/Cancel/Tick`으로 구동하고 `LineShown`/`ChoicesShown`/`Ended` 이벤트를 낸다. 그래서 뷰를 갈아끼울 수 있고 로직을 단독으로 테스트할 수 있다(의존성 역전). 노드를 순회하다가 `Branch`/`Event`는 즉시 처리하고, `Line`/`Choice`/`Wait`에서 멈춘다. 분기 루프 보호(1000 스텝), 없는 노드 id는 경고 후 종료.
+- **`DialogueSequence` / `DialogueNode`** — 노드는 `type` 값에 따라 쓰는 필드가 달라지는 **평면 직렬화 클래스** 하나다. 타입별 서브클래스는 Unity 인스펙터에서 `[SerializeReference]` 다형 리스트를 편집할 방법이 없어서 피했다(기획 문서의 "id, type, data(타입별 필드)" 구조와 동일). 다음 노드 id가 비어 있으면 시퀀스 종료. 노드 타입: `Line`/`Choice`/`Branch`/`Event`/`Wait`/`End`. `Skippable`이 false면 빨리 넘기기(`FastForward`)가 무시된다(취소는 항상 가능).
 - **조건** — `DialogueCondition`(플래그 이름 + 기대값, 빈 이름 = 항상 참). `Branch`와 `Choice` 선택지 표시 조건에 쓰인다(조건 안 맞는 선택지는 숨김).
 - **`DialogueFlagStore`** — 스토리 플래그(true인 것만 저장) + `ISaveDataProvider`(키 `dialogue.flags`). `SaveDataRegistry.Instance` 등록을 `Start`에서 한다(Boot 오브젝트에 같이 놓을 때 레지스트리 `Awake`보다 `OnEnable`이 먼저 돌 수 있어서).
 - **이벤트 핸들러** — `IDialogueEventHandler`를 `DialoguePlayer.RegisterEventHandler`로 등록한다. 러너는 이벤트 종류를 모르므로 새 이벤트 = 새 핸들러(개방-폐쇄). 조용한 이벤트는 `onCompleted(true)`를 바로 호출하고, 모달(퀘스트 제안·상점)은 창이 닫힌 뒤 `onCompleted(accepted)`를 호출한다 — 그동안 러너는 `ModalPending`이고, `accepted == false`면 `nextNodeIfDeclinedId`(비어 있으면 `nextNodeId`)로 간다. 구현된 핸들러: `SetFlag`, `GiveItem`(플레이어 컨테이너 그리드 → 플랫 인벤토리 순, 못 들어가면 발밑에 드롭). `StartQuest`/`OpenQuestOffer`/`OpenQuestTurnIn`/`OpenShop`은 퀘스트·상점 시스템이 없어서 **핸들러 미등록 — 경고 로그를 남기고 건너뛴다**.
@@ -42,14 +42,17 @@ graph TD
 |---|---|---|
 | Submit | `F`, `Enter` | 타이핑 중 = 즉시 완성 / 줄 끝 = 다음 / 선택지 = 포커스 확정 / 로그 열림 = 로그 닫기 |
 | Navigate | `W`·`↑` / `S`·`↓` | 선택지 포커스 이동(순환) |
-| Cancel 탭(≤0.2s) | `Esc` | 줄 사이에서 대화 로그 토글(선택지 화면에서는 무시) |
-| Cancel 홀드(≥0.5s) | `Esc` | 시퀀스 전체 스킵(`skippable`일 때만) |
+| Cancel | `Esc` | **대화 취소** — 그 자리에서 끝나고 다시 말을 걸면 진입 노드부터 다시 시작한다(항상 가능, 스킵 불가 시퀀스도 포함) |
+| Skip | `Tab` | **빨리 넘기기** — 줄과 대기를 넘기며 나아가되 중간의 이벤트(플래그·보상)는 실행하고, 선택지·모달 창·끝에서 멈춘다(스킵 불가 시퀀스는 무시) |
+| Log | `L` | 줄 사이에서 대화 기록 토글(선택지 화면에서는 무시) |
 
 선택지는 마우스 클릭도 된다(`Button.onClick`).
 
 ## 게임 입력 차단
 
 대화창은 창이 아니라서 `WindowManager` 스택/배경 가림에 넣지 않는다(`Esc`가 `CloseTopMost`로 대화를 닫거나 배경이 어두워지면 안 됨). 대신 `WindowManager`에 `AddInputBlocker`/`RemoveInputBlocker`를 추가했고, `IsAnyWindowOpen`이 차단자가 있어도 true가 된다 — 그래서 `PlayerInputHandler`(이동), `PlayerInteractionController`(F), 퀵슬롯·무기 입력이 창이 열렸을 때와 똑같이 막힌다. 기획 문서 3장의 "대화 중 Player OFF / UI ON"에 해당한다.
+
+`PlayerLocomotion`은 Space/Shift를 직접 읽어서 처음에는 대화 중에도 점프가 됐다 — 이제 `windowManager`로 게이팅한다(프리팹은 씬 오브젝트를 가질 수 없어 씬마다 연결, 비워 두면 게이팅 없음). 상점·퀘스트 같은 **실제 창이 대화 위에 열려 있으면**(`WindowManager.IsWindowOpen`) 대화 입력은 멈추고 `Esc`는 그 창만 닫는다.
 
 같은 키가 겹치는 문제 두 가지를 이렇게 막았다:
 - **시작 프레임** — F로 대화를 시작한 그 프레임에 `DialogueInputHandler`도 F를 봐서 첫 줄이 바로 넘어가는 것을 막기 위해 `StartFrame`과 같은 프레임의 입력은 무시한다.
@@ -67,7 +70,7 @@ graph TD
 
 - **`speakerId` 대신 `speakerName` 문자열**과 `portrait` 스프라이트를 노드에 직접 둔다(화자 데이터 애셋 없음).
 - **로컬라이제이션 키가 아니라 원문 문자열**을 `text`에 저장한다(기획 문서 7장은 초기부터 키를 권장 — 로컬라이제이션 파이프라인 도입 시 필드 의미만 바꾸면 되도록 필드는 하나로 유지).
-- **스킵 시 남은 이벤트는 실행되지 않는다** — 기획 문서대로 `End`로 즉시 이동한다. 그래서 스킵 가능한 시퀀스 중간의 `SetFlag`/`GiveItem`이 통째로 건너뛰어질 수 있다. 상태를 바꾸는 이벤트가 있는 시퀀스는 `skippable = false`로 하거나, 스킵을 "남은 조용한 이벤트만 실행"으로 바꾸는 결정이 필요하다.
+- **Esc = 취소, Tab = 빨리 넘기기로 기획 문서의 Cancel 탭/홀드를 바꿨다**(2026-09-19, 플레이 테스트 결과). 기획 문서는 Cancel 탭 = 기록, 홀드 = 전체 스킵(`End`로 점프)이었는데, 그러면 스킵이 중간의 `SetFlag`/`GiveItem`을 건너뛰는 문제가 있었다. 빨리 넘기기는 이벤트를 실행하면서 진행해서 이 문제가 없다. 취소는 아무것도 실행하지 않는다 — 이미 실행된 이벤트(예: 촌장의 `met_elder`)는 그대로라 다시 말을 걸면 그 플래그에 따른 분기부터 시작한다.
 - **시네마틱 없음** — `isCinematic`, 레터박스, 하단 자막, `CameraCut`, 스킵 게이지 UI. `IDialogueView` 뒤에 시네마틱 뷰를 추가하는 방식으로 붙이면 러너는 바뀌지 않는다.
 - **퀘스트/상점 모달 이벤트 핸들러** — 인터페이스는 준비됨, 구현은 해당 시스템 이후.
 - 화자 강조(`focusTarget`), 타이핑 속도 설정 화면 연동(현재 `DialogueBoxUIView.charactersPerSecond` 인스펙터 값), 디버그 콘솔(F1) 시퀀스 점프(`DialogueTestHarness`가 임시로 대신함), 노드 그래프 저작 툴 — 후속.

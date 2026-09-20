@@ -61,7 +61,7 @@ Layer 1 (Layer 0에만 의존):
   Items.Equipment -> Items.Grid
   UI.Windows(WindowManager) -> UI
   Characters.Player(StaminaController) -> Player
-  Characters.Player(PlayerLocomotion) -> Characters(Core)
+  Characters.Player(PlayerLocomotion) -> Characters(Core), UI.Windows  [2026-09-19: Space/Shift 게이팅]
 
 Layer 2 (Layer 0~1 조합):
   Interaction(PlayerInteractionController) -> UI.Windows  [2026-09-18 추가, #3]
@@ -164,7 +164,7 @@ graph LR
 | `Weapons` | `HUD`(WeaponInfoUIView), `Characters.Player`(PlayerController), **+2026-09-18**: `Characters.Enemy`(EnemyController, 선택적 WeaponLoadout) |
 | `Characters`(Core) | `Characters.Player`, `AI.States`, `AI.StateMachine`, **+2026-09-18**: `Characters.Enemy`, `Characters.Npc` |
 | `UI` | `UI.Windows`, `HUD`(PlayerVitalsHudPanel) |
-| `UI.Windows` | `Items.UI`(InventoryScreenController/MapScreenController 등은 같은 모듈), `HUD`(HudRootView/HotbarLayoutController) — **+2026-09-18**: `Interaction`(PlayerInteractionController), `QuickSlot`(QuickSlotInputHandler), `Weapons`(WeaponLoadoutInputHandler) 전부 `IsAnyWindowOpen` 게이팅용(#3) |
+| `UI.Windows` | `Items.UI`(InventoryScreenController/MapScreenController 등은 같은 모듈), `HUD`(HudRootView/HotbarLayoutController) — **+2026-09-18**: `Interaction`(PlayerInteractionController), `QuickSlot`(QuickSlotInputHandler), `Weapons`(WeaponLoadoutInputHandler) 전부 `IsAnyWindowOpen` 게이팅용(#3), **+2026-09-19**: `Characters.Player`(PlayerLocomotion), `Dialogue`(입력 차단자) |
 | `HUD.Markers` | `HUD.Compass`, `HUD.Minimap` |
 | `AI`(StateMachine core) | `AI.States`, **+2026-09-18**: `Characters.Enemy`, `Characters.Npc` |
 | `AI.States` | **+2026-09-18**: `Characters.Enemy`, `Characters.Npc` (Idle/Patrol/Chase/Attack/Dead 재사용; Follow/Hold는 Npc 트랙이 이 모듈에 신설) |
@@ -189,13 +189,14 @@ graph LR
 
 ### Items/World (`Game.Items`)
 - `World/WorldItem.cs` — class WorldItem : MonoBehaviour, IInteractable → `Game.Interaction`, `Game.Items.Equipment` (`ContainerEquipmentController`의 Pocket→Rig→Backpack 그리드 우선, 없으면 플랫 `IInventory` 폴백. +`SetStack`)
+- `World/ContainerPickup.cs`, `World/ContainerWorldSpawner.cs`, `World/ContainerDropExtensions.cs` — 내용물을 든 컨테이너의 월드 표현(착용 가능), 스포너(팩토리에 자동 등록), 드롭 헬퍼 (2026-09-19)
 - `World/WorldItemFactory.cs` — class WorldItemFactory : MonoBehaviour, IWorldItemFactory (월드에 아이템을 만드는 단일 진입점, `Instance`는 씬에 없으면 자동 생성, 종류별 `IWorldItemSpawner` 등록, `SpawnAll`은 흩뿌려 지면에 놓음, 2026-09-19)
 - `World/IWorldItemFactory.cs`, `World/IWorldItemSpawner.cs`, `World/WorldSpawnRequest.cs` — 인터페이스와 요청(아이템+수량+선택적 `object State`)
 - `World/ItemWorldSpawner.cs` — 기본 스포너(`WorldPrefab` 또는 기본 표현 + `WorldItem`) / `World/DefaultWorldVisual.cs` — 프리팹 없을 때의 트리거 큐브 / `World/DropPlacement.cs` — 흩뿌리기 오프셋·지면 탐색(순수 함수)
 
 ### Items/Grid (`Game.Items.Grid`)
 - `IGridInventory.cs` — interface IGridInventory (`TryPlaceAt`에 `rotated` 인자 추가, 2026-09-19)
-- `GridInventory.cs` — class GridInventory : MonoBehaviour, IGridInventory (자동 배치가 원래 방향이 안 되면 90° 회전 재시도)
+- `GridInventory.cs` — class GridInventory : MonoBehaviour, IGridInventory (자동 배치가 원래 방향이 안 되면 90° 회전 재시도. 기존 스택에 병합될 때도 `GridChanged` 발생, 2026-09-19)
 - `GridShapeData.cs` — class GridShapeData : ScriptableObject (pocket/rig/backpack 모양 정의)
 - `PlacedItem.cs` — class PlacedItem (+`IsRotated`, 정적 `GetFootprint(item, rotated)`)
 - `GridItemDragMover.cs` — static class GridItemDragMover (드래그 이동: 정확한 칸 → 자동 배치 → 원위치 복귀. UI 비의존, 2026-09-19)
@@ -204,6 +205,7 @@ graph LR
 - `ContainerCategory.cs` — enum ContainerCategory (Pocket/Rig/Backpack)
 - `ContainerItemData.cs` — class ContainerItemData : ItemData → `Game.Items.Grid`
 - `ContainerEquipmentController.cs` — class ContainerEquipmentController : MonoBehaviour → `Game.Items.Grid`
+- `ContainerContents.cs` — class ContainerContents + struct EquippedContainer/EquipResult (내용물 스냅샷, 컨테이너와 함께 벗기고 입는 단위, 2026-09-19). 컨트롤러에 `Detach`/`EquipWithContents` 추가
 - `ContainerEquipmentSaveProvider.cs` — class ContainerEquipmentSaveProvider : MonoBehaviour, ISaveDataProvider → `Game.Items.Grid`, `Game.Persistence` (키 `player.containers`, 2026-09-19)
 
 ### Items/UI (`Game.Items.UI`)
@@ -213,7 +215,7 @@ graph LR
 - `GridCellUIView.cs` — class GridCellUIView : MonoBehaviour
 - `GridItemUIView.cs` — class GridItemUIView : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler → `Game.Items.Grid` (드래그 소스: 실제 아이콘 복제 고스트, R 회전, 소스 파괴 시에도 고스트 정리)
 - `EquipmentSlotUIView.cs` — class EquipmentSlotUIView : MonoBehaviour, IPointerClickHandler → `Game.Items.Equipment`
-- `InventoryLayoutView.cs` — class InventoryLayoutView : MonoBehaviour → `Game.Items.Equipment`, `Game.Player`
+- `InventoryLayoutView.cs` — class InventoryLayoutView : MonoBehaviour → `Game.Items.Equipment`, `Game.Player` (장비 슬롯 클릭 = `Detach` 후 컨테이너를 내용물째 드롭, 2026-09-19)
 - `GridInventoryUIView.cs` — class GridInventoryUIView : MonoBehaviour, IDropHandler → `Game.Items.Grid` (드롭 타깃 + 놓일 자리 미리보기, 첫 렌더링은 `Start`)
 - `InventoryScreenController.cs` — class InventoryScreenController : SimpleWindow → `Game.UI.Windows` (전체화면 인벤토리 진입점)
 
@@ -277,11 +279,11 @@ graph LR
 - `DialogueCondition.cs`, `DialogueChoiceOption.cs`, `DialogueNode.cs` — [Serializable] 데이터(평면 구조), `DialogueNode` → `Game.Items`(`eventItem`)
 - `DialogueSequence.cs` — class DialogueSequence : ScriptableObject
 - `IDialogueFlags.cs` — interface / `DialogueFlagStore.cs` — class DialogueFlagStore : MonoBehaviour, IDialogueFlags, ISaveDataProvider → `Game.Persistence` (키 `dialogue.flags`)
-- `DialogueRunner.cs` — class DialogueRunner (순수 C#, 재생 상태 머신) / `DialogueLogEntry.cs`
+- `DialogueRunner.cs` — class DialogueRunner (순수 C#, 재생 상태 머신. `Cancel()`/`FastForward()` — 구 `Skip()` 대체, 2026-09-19) / `DialogueLogEntry.cs`
 - `IDialogueEventHandler.cs` — interface + `DialogueEventContext`; `SetFlagEventHandler.cs`, `GiveItemEventHandler.cs` → `Game.Items`, `Game.Items.Equipment`
 - `IDialogueView.cs` — interface / `DialogueBoxUIView.cs` — class DialogueBoxUIView : MonoBehaviour, IDialogueView (UGUI 레거시 `Text`)
 - `DialoguePlayer.cs` — class DialoguePlayer : MonoBehaviour (**씬 composition root**, `Instance`) → `Game.UI.Windows`(`AddInputBlocker`)
-- `DialogueInputHandler.cs` — class DialogueInputHandler : MonoBehaviour (Submit F/Enter, Navigate W/S, Cancel 탭=로그/홀드=스킵)
+- `DialogueInputHandler.cs` — class DialogueInputHandler : MonoBehaviour (Submit F/Enter, Navigate W/S, Cancel Esc=대화 취소, Skip Tab=빨리 넘기기, Log L. 시작 프레임·실제 창이 열려 있을 때는 입력 무시. 2026-09-19 재작성)
 - `DialogueInteractable.cs` — class DialogueInteractable : MonoBehaviour, IInteractable → `Game.Interaction` (구 `Interaction/` 폴더에서 이동)
 
 ### Interaction/UI (`Game.Interaction.UI`)
@@ -309,7 +311,7 @@ graph LR
 - `PlayerActionType.cs` — enum PlayerActionType
 - `PlayerActionCosts.cs` — class PlayerActionCosts : ScriptableObject (nested struct Entry)
 - `StaminaController.cs` — class StaminaController : MonoBehaviour → `Game.Player` (+`Exhausted`/`Recovered` 이벤트, 2026-09-18, design-conflict-review.md #4)
-- `PlayerLocomotion.cs` — class PlayerLocomotion : MonoBehaviour → `Game.Characters` (자체 Input System 키 처리. `TryJump`는 `motor.IsGrounded`일 때만 가능 — 공중 연속 점프 방지)
+- `PlayerLocomotion.cs` — class PlayerLocomotion : MonoBehaviour → `Game.Characters`, `Game.UI.Windows` (자체 Input System 키 처리. `TryJump`는 `motor.IsGrounded`일 때만 가능 — 공중 연속 점프 방지. 선택적 `windowManager`로 Space/Shift를 게이팅해 대화·창이 열려 있으면 점프/달리기 불가, 2026-09-19)
 - `PlayerInputHandler.cs` — class PlayerInputHandler : MonoBehaviour → `Game.UI.Windows` (WASD + 좌클릭을 `PlayerController.OnMoveInput`/`OnAttackInput`으로 전달, `IsAnyWindowOpen`이면 이동 정지. 프로젝트 관례대로 `Keyboard.current`/`Mouse.current` 직접 폴링, 2026-09-19)
 - `PlayerController.cs` — class PlayerController : MonoBehaviour → `Game.Combat`, `Game.Characters`, `Game.Items.Equipment`, `Game.QuickSlot`, `Game.Weapons`, `Game.SceneFlow` (**최상위 composition root**, §D 참고. `Awake`에서 `PlayerRuntimeContext.Instance?.BindActivePlayer` 호출)
 

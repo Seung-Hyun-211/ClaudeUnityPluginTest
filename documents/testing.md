@@ -19,13 +19,14 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 - 에디터: Window > General > Test Runner > EditMode.
 - 열려 있는 에디터에 CLI로 실행하려면 `TestRunnerApi`를 `runSynchronously = true`로 호출하는 스크립트를 `unity command run_script`로 돌린다(`unity test`는 프로젝트를 여는 별도 에디터 프로세스를 띄우므로 이미 열린 프로젝트와 충돌한다).
 
-## 현재 범위 (64개)
+## 현재 범위 (83개)
 
 | 파일 | 대상 |
 |---|---|
-| `GridInventoryTests` | 배치/겹침/모양 밖, 회전 발자국, 스택 병합, 자동 회전, 가득 참, 모양 변경 시 밀려남, `Clear` |
+| `GridInventoryTests` | 배치/겹침/모양 밖, 회전 발자국, 스택 병합(+병합 시 `GridChanged` — UI 숫자 갱신 버그 회귀), 자동 회전, 가득 참, 모양 변경 시 밀려남, `Clear` |
 | `GridItemDragMoverTests` | 이동, 회전 적용, 점유된 칸 → 자동 배치, 대상이 가득 차면 **원래 칸·원래 방향으로 복귀**, 스택 병합 시 수량 보존, 낡은 참조 무시 |
-| `DialogueRunnerTests` | 줄 진행·로그, 타이핑 중 Submit 무시, 선택지 조건·가시 인덱스, Branch, `SetFlag`, 핸들러 없는 이벤트, 모달 일시정지와 수락/거절 분기, 스킵 후 늦은 완료 무시, 스킵 가능/불가, Wait, 없는 노드·무한 루프·빈 선택지 종료 |
+| `DialogueRunnerTests` | 줄 진행·로그, 타이핑 중 Submit 무시, 선택지 조건·가시 인덱스, Branch, `SetFlag`, 핸들러 없는 이벤트, 모달 일시정지와 수락/거절 분기, **취소**(스킵 불가도 가능, 다시 시작하면 진입 노드부터)와 취소 후 늦은 모달 완료 무시, **빨리 넘기기**(이벤트 실행·선택지/모달/끝에서 정지·Wait 통과·스킵 불가 무시·무한 루프 차단), Wait, 없는 노드·무한 루프·빈 선택지 종료 |
+| `ContainerTests` | 내용물 스냅샷·복원, 스냅샷 독립성, 안 맞는 칸 overflow, `Detach`(내용물 동봉·슬롯 비움), `EquipWithContents`(교체 시 옛 컨테이너가 자기 내용물과 함께 나옴), 컨테이너 스포너/픽업, `Drop` 확장 |
 | `DialogueFlagStoreTests` | 플래그·변경 이벤트, 저장 왕복, `Clear` |
 | `ItemDatabaseTests` | id 조회, 빈/중복/null 검출 |
 | `DropPlacementTests` / `DropPlacementGroundTests` | 흩뿌리기(단일, 간격, 결정성), 지면 탐색(트리거·`Rigidbody`·인터랙터블 무시), 지면에 얹기 |
@@ -34,7 +35,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 
 ## 검증 방법: 변이 확인
 
-테스트가 실제로 버그를 잡는지 확인하려고 코드를 일부러 망가뜨려 봤다. 세 곳 모두 테스트가 실패했다(원복 후 64개 통과).
+테스트가 실제로 버그를 잡는지 확인하려고 코드를 일부러 망가뜨려 봤다. 세 곳 모두 테스트가 실패했다(원복 후 통과).
 
 1. `GridItemDragMover` 원위치 복귀가 회전을 잊게 함 → `Move_TargetFull_RestoresTheItemToItsOriginalCellAndOrientation` 실패
 2. `DialogueRunner`가 거절 분기를 무시하게 함 → `ModalEvent_PausesUntilTheHandlerCompletes_ThenFollowsAcceptedOrDeclined` 실패
@@ -46,6 +47,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 - **EditMode에서는 `Awake`/`Start`가 돌지 않는다.** `Awake`가 초기화하는 컴포넌트(`Inventory`의 슬롯 배열)는 `Invoke(component, "Awake")`로 명시 호출한다. `GridInventory`는 `Awake`가 `initialShape`를 넣으므로 테스트에서는 `SetShape`로 모양을 준다(`MakeGrid`).
 - 인스펙터로 설정하는 private `[SerializeField]`는 `Set(target, "field", value)`(리플렉션)로 넣는다.
 - 코드가 `Debug.LogWarning`/`LogError`를 내는 경로는 `LogAssert.Expect`로 기대해야 한다 — 예상 밖의 `Error`는 테스트를 실패시킨다.
+- **`LogAssert.Expect`로 기대한 로그도 에디터 콘솔에는 그대로 찍힌다.** 테스트를 돌린 뒤 콘솔에 `Dialogue [test] looped through 1000 nodes ...` 같은 에러가 남는 것은 무한 루프 차단이 동작하는지 확인하는 테스트(`EndlessBranchLoop_IsCutOffWithAnError`)가 일부러 낸 것이라 정상이다. 게임 실행 중에 나온 게 아니면 무시해도 된다.
 
 ## 아직 테스트가 없는 곳
 

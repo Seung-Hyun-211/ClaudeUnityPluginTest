@@ -154,4 +154,4 @@ PopupWindow Launch<TContent>(TContent contentPrefab) where TContent : MonoBehavi
 
 ## 입력 차단자 (창이 아닌 것의 게이팅, 2026-09-19)
 
-대화창처럼 "창은 아니지만 열려 있는 동안 게임 입력을 막아야 하는" 것은 `WindowManager.AddInputBlocker(owner)` / `RemoveInputBlocker(owner)`로 참여한다. `IsAnyWindowOpen`이 창/팝업이 없어도 차단자가 있으면 true가 되므로 `PlayerInputHandler`·`PlayerInteractionController`·퀵슬롯·무기 입력 게이팅이 그대로 동작한다. 차단자는 풀스크린/팝업 스택에 들어가지 않고, 배경을 어둡게 하지 않으며, `CloseTopMost`(`Esc`)로 닫히지 않는다 — 자세한 사용 예는 [dialogue-system.md](dialogue-system.md).
+대화창처럼 "창은 아니지만 열려 있는 동안 게임 입력을 막아야 하는" 것은 `WindowManager.AddInputBlocker(owner)` / `RemoveInputBlocker(owner)`로 참여한다. `IsAnyWindowOpen`이 창/팝업이 없어도 차단자가 있으면 true가 되므로 `PlayerInputHandler`·`PlayerInteractionController`·퀵슬롯·무기 입력 게이팅이 그대로 동작한다. 실제 창이 열려 있는지만 알고 싶으면 `IsWindowOpen`(풀스크린 또는 팝업만 셈, 차단자 제외)을 쓴다 — 대화창이 그 위에 뜬 창을 구분하는 용도. 차단자는 풀스크린/팝업 스택에 들어가지 않고, 배경을 어둡게 하지 않으며, `CloseTopMost`(`Esc`)로 닫히지 않는다 — 자세한 사용 예는 [dialogue-system.md](dialogue-system.md).

@@ -78,7 +78,7 @@ public class PlayerActionCosts : ScriptableObject
 
 ### `PlayerLocomotion`
 
-[character-system.md](character-system.md)의 `CharacterMotor`를 플레이어 전용으로 확장한 컨트롤러로, `StaminaController` + `PlayerActionCosts`를 참조해서 위 게이팅을 수행하고 실제 이동/점프 물리를 실행한다. 스태미나 판단과 이동 실행을 한 클래스가 맡되, "얼마가 필요한지"는 데이터에서, "얼마가 남았는지 판단"은 `StaminaController`에서 가져오므로 각 부품은 여전히 하나의 책임만 가진다.
+[character-system.md](character-system.md)의 `CharacterMotor`를 플레이어 전용으로 확장한 컨트롤러로, `StaminaController` + `PlayerActionCosts`를 참조해서 위 게이팅을 수행하고 실제 이동/점프 물리를 실행한다. 스태미나 판단과 이동 실행을 한 클래스가 맡되, "얼마가 필요한지"는 데이터에서, "얼마가 남았는지 판단"은 `StaminaController`에서 가져오므로 각 부품은 여전히 하나의 책임만 가진다. Space/Shift는 이 클래스가 직접 읽기 때문에 선택적 `windowManager`(`IsAnyWindowOpen`)로 게이팅한다 — 대화나 창이 열려 있으면 점프·달리기가 막히고 달리기 상태도 풀린다.
 
 ## 기초 스탯 (지구력 / 힘 / 행운 …)
 

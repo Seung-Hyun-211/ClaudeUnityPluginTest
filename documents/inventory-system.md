@@ -41,6 +41,7 @@ graph TD
 - **`IGridInventory.cs`** — `TryAddItem`(자동 배치), `TryPlaceAt`(좌표 지정 배치, 드래그&드롭용, `rotated` 인자 기본값 false), `GetItemAt`, `RemoveItem`, `SetShape`(모양 교체) 등을 정의.
 - **`GridInventory.cs`** — 구현체. 칸이 겹치지 않는지, 마스크상 사용 가능한지 검사한 뒤 배치한다.
   - `TryAddItem` 자동 배치는 원래 방향으로 들어갈 자리가 없을 때만 90° 회전해서 다시 찾는다(1x3 판자가 4x2 포켓에 3x1로 들어가는 식).
+  - 기존 스택에 수량이 합쳐질 때도 `GridChanged`를 낸다. 예전에는 새 스택이 안 생기면 이벤트가 없어서 UI의 숫자가 갱신되지 않았다(합쳐진 뒤 옮기면 그제서야 맞게 보였음).
   - `SetShape(newShape)`: 모양이 바뀌어(예: 더 작은 가방으로 교체) 기존에 놓인 아이템이 더는 들어갈 자리가 없으면 **해당 아이템들을 꺼내서 리스트로 반환**한다. "꺼내진 아이템을 어떻게 할지"(바닥에 버리기, 다른 칸으로 옮기기 등)는 `GridInventory`의 책임이 아니라 호출자(장비 컨트롤러)가 결정하도록 관심사를 분리했다.
 
 `ItemData`([Assets/Scripts/Items/Core/ItemData.cs](../Assets/Scripts/Items/Core/ItemData.cs))에는 그리드에서 차지하는 크기를 나타내는 `GridSize`(gridWidth × gridHeight, 기본 1×1)를 추가해서, 기존 아이템 시스템과 그리드 인벤토리가 같은 아이템 데이터를 공유한다.
@@ -49,7 +50,7 @@ graph TD
 
 - **`ContainerCategory.cs`** — `Pocket / Rig / Backpack` (추후 다른 카테고리 추가 가능).
 - **`ContainerItemData.cs`** — `ItemData`를 상속하는 "착용 가능한 컨테이너 아이템". `Category`(어느 슬롯에 착용되는지) + `Shape`(착용 시 부여할 `GridShapeData`)를 가진다. 같은 카테고리라도 아이템 애셋마다 다른 모양의 `GridShapeData`를 연결할 수 있어 "포켓 모양을 나중에 여러 개 중 선택"하는 요구를 만족한다.
-- **`ContainerEquipmentController.cs`** — 플레이어가 보유한 세 개의 `GridInventory`(pocket/rig/backpack)를 들고 있다가, `Equip(ContainerItemData)` 호출 시 해당 카테고리 그리드의 `SetShape()`를 호출해 모양을 교체한다. `Unequip`은 `SetShape(null)`로 그리드를 비활성화(용량 0) 상태로 되돌린다. 두 메서드 모두 밀려난 아이템 목록(`List<ItemStack>`)을 반환한다.
+- **`ContainerEquipmentController.cs`** — 플레이어가 보유한 세 개의 `GridInventory`(pocket/rig/backpack)를 들고 있다가, `Equip(ContainerItemData)` 호출 시 해당 카테고리 그리드의 `SetShape()`를 호출해 모양을 교체한다. `Unequip`은 `SetShape(null)`로 그리드를 비활성화(용량 0) 상태로 되돌린다. 두 메서드 모두 밀려난 아이템 목록(`List<ItemStack>`)을 반환한다. 이 둘은 **모양만 바꾸는 저수준 연산**(세이브 복원용)이고, 게임플레이에서 컨테이너를 입고 벗을 때는 내용물을 함께 옮기는 `EquipWithContents`/`Detach`를 쓴다 — 아래 "컨테이너는 내용물째 다룬다".
 
 ## 플레이어 상태 — `Assets/Scripts/Player/Stats`
 
@@ -83,6 +84,21 @@ graph LR
   - `Awake`에서 그리드 캐스팅만 하고 **첫 렌더링은 `Start`에서** 한다. `GridInventory.Awake`(`Shape` 설정)가 다른 GameObject에 있으면 실행 순서가 보장되지 않아 셀이 0개로 그려지는 버그가 있었기 때문이다(`OnEnable`의 재-Refresh는 `Start` 이후에만).
 - **`EquipmentSlotUIView.cs`** — 장비 슬롯 1칸(현재는 클릭 시 해제만 구현, 장착은 드래그&드롭 확장 지점으로 남김).
 
+
+### 컨테이너는 내용물째 다룬다 (2026-09-19)
+
+리그·가방을 벗거나 버리면 **안에 든 아이템과 함께 하나의 리그/가방으로** 월드에 떨어지고, 다시 주우면 내용물이 그대로 돌아온다. 내용물은 슬롯이 아니라 컨테이너에 속한다.
+
+- **`ContainerContents`**(`Items.Equipment`) — 컨테이너 안의 배치 스냅샷(아이템, 수량, 칸, 회전). `Capture(grid)` / `RestoreInto(grid)`(칸이 사라져 못 돌아간 스택은 overflow로 반환). `EquippedContainer`(컨테이너 + 내용물)와 `EquipResult`(교체돼 나온 컨테이너 + overflow)를 함께 쓴다.
+- **`ContainerEquipmentController`**
+  - `Detach(category)` — 착용 중인 컨테이너를 내용물과 함께 벗겨 반환하고 그리드를 비운다(아무것도 없으면 null). **게임플레이용 연산.**
+  - `EquipWithContents(container, contents)` — 내용물과 함께 착용. 그 슬롯에 있던 컨테이너는 **자기 내용물을 달고** `Replaced`로 나온다(가방을 바꾸면서 안의 물건이 낱개로 흩어지지 않는다).
+  - `Equip`/`Unequip`은 모양만 바꾸는 저수준 연산으로 남았다(세이브 복원이 씀). 이쪽은 예전처럼 안 맞는 스택만 evicted로 돌려준다.
+- **`ContainerPickup`**(`Items.World`) — 월드의 컨테이너. `F`로 착용하며 프롬프트에 "(아이템 N개 들어있음)"이 붙는다. `WeaponPickup`이 무기를 장착하는 것과 같은 방식이다.
+- **`ContainerWorldSpawner`** — `ContainerItemData` 요청에 `ContainerContents`를 `State`로 실어 `ContainerPickup`을 만든다(시작 시 팩토리에 자동 등록). 컨테이너를 상태 없이 요청하면 빈 컨테이너가 된다.
+- **버리기** — 장비 슬롯 클릭(`InventoryLayoutView`)은 `Detach` 후 컨테이너를 통째로 드롭한다. 예전에는 안의 아이템만 흩어지고 **컨테이너 자체는 사라졌다**(버그였음).
+- 이 모델은 나중의 "가방 안의 가방"(기획 문서)과 같은 방향이다 — 컨테이너 인스턴스가 자기 내용물을 들고 다닌다.
+
 ### 드래그 앤 드롭 & 회전
 
 기획 문서([기획문서_인벤토리아이템시스템설계.md](../Docs/기획문서_인벤토리아이템시스템설계.md))의 "드롭한 칸이 안 되면 첫 빈 자리 탐색, 그래도 안 되면 조용히 원위치" 규칙을 구현했다.
@@ -95,7 +111,7 @@ graph LR
 ## 월드 아이템 연동 — `Assets/Scripts/Items/World`
 
 - **`WorldItem`** — `Interact` 시 상호작용자에게 `ContainerEquipmentController`가 있으면 Pocket → Rig → Backpack 순으로 그리드에 넣고(없으면 기존 플랫 `IInventory`로 폴백). 다 못 넣으면 남은 수량을 유지한 채 월드에 남는다. `SetStack(item, quantity)`로 스폰 직후 내용을 채운다.
-- **`WorldItemFactory`**(구 `WorldItemSpawner` 대체, [world-item-factory.md](world-item-factory.md)) — 아이템을 월드에 만드는 단일 진입점. `ItemData.WorldPrefab`(없으면 기본 큐브)을 인스턴스화하고 여러 개는 흩뿌려 지면에 놓는다. `Equip`/`Unequip`(`SetShape`)으로 밀려난 스택이나 인벤토리에서 버린 아이템을 월드에 떨군다(`InventoryLayoutView`, 테스트 하니스가 호출). `WorldPrefab`이 비어 있으면 경고만 남기고 건너뛴다. 범용 프리팹은 `Assets/Prefabs/Items/WorldItemPickup.prefab`.
+- **`WorldItemFactory`**(구 `WorldItemSpawner` 대체, [world-item-factory.md](world-item-factory.md)) — 아이템을 월드에 만드는 단일 진입점. `ItemData.WorldPrefab`(없으면 기본 큐브)을 인스턴스화하고 여러 개는 흩뿌려 지면에 놓는다. 인벤토리에서 버린 아이템과 벗은/교체된 컨테이너(내용물 포함, `ContainerDropExtensions.Drop`)를 월드에 떨군다(`InventoryLayoutView`, 테스트 하니스가 호출). `WorldPrefab`이 비어 있으면 경고만 남기고 건너뛴다. 범용 프리팹은 `Assets/Prefabs/Items/WorldItemPickup.prefab`.
 
 ## 테스트 씬
 

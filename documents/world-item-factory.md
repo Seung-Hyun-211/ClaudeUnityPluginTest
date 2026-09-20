@@ -146,3 +146,7 @@ namespace Game.Items
 | J | ⚪ 인벤토리 스택 | 그리드 스택은 항상 `MaxStackSize` 이하 | 팩토리는 수량을 쪼개지 않음(줍기가 `TryAddItem`으로 알아서 분할) |
 | K | ⚪ `CLAUDE.md` 원칙 | DRY: 생성 경로 통합. KISS 우려: 스포너 등록 구조가 과해 보일 수 있음 | 순환 의존(C)을 피하려면 등록 방향 역전이 필요하고, 소비자는 2종뿐이라 최소한(`CanSpawn` + `Spawn`)으로 유지 |
 | L | ⚪ 일관성 | `EnemySpawner`/`NpcSpawner`와 스타일이 다름 | §8에 남김 |
+
+## 10. 컨테이너 (2026-09-19 추가)
+
+`ContainerWorldSpawner`(`Items.World`)가 `ContainerItemData` 요청을 가져가 `ContainerPickup`을 만든다. 상태(`State`)로 `ContainerContents`를 받아 내용물을 들고 있게 한다 — 팩토리의 "종류별 상태" 확장이 무기 다음으로 쓰인 두 번째 예다. 그래서 §2, §7의 "개별 아이템 상태" 제한은 **컨테이너 내용물에 한해 해결됐다**(무기·내구도 같은 나머지 상태는 여전히 별도 작업). 등록은 무기와 같은 `RuntimeInitializeOnLoadMethod` 자동 등록 방식이고, 헬퍼 `ContainerDropExtensions.Drop(EquippedContainer | EquipResult, 위치)`로 호출부가 컨테이너 드롭을 같은 방식으로 처리한다. 자세한 모델은 [inventory-system.md](inventory-system.md)의 "컨테이너는 내용물째 다룬다".
