@@ -10,7 +10,7 @@ graph TD
     Player["DialoguePlayer<br/>(씬 composition root, Instance)"]
     Runner["DialogueRunner (순수 C#)<br/>노드 그래프 + 재생 상태 머신"]
     Sequence["DialogueSequence (ScriptableObject)<br/>DialogueNode[] (평면 구조)"]
-    View["IDialogueView ← DialogueBoxUIView (UGUI)"]
+    View["IDialogueView ← DialogueBoxUIView (TextMeshPro)"]
     Input["DialogueInputHandler<br/>(Keyboard.current 폴링)"]
     Handlers["IDialogueEventHandler<br/>SetFlag / GiveItem / (퀘스트·상점은 후속)"]
     Flags["IDialogueFlags ← DialogueFlagStore<br/>+ ISaveDataProvider"]
@@ -37,6 +37,10 @@ graph TD
 ## 대사 안의 색·움직임 연출
 
 대사 문자열에 `<wave>`, `<sway>`, `<shake>`, `<rainbow>`, `<color=#4aa3ff>`, `<pause=0.5>` 같은 인라인 태그를 쓴다. 러너·노드는 그대로이고 뷰(`DialogueBoxUIView`)가 파싱해서 본문에 애니메이션으로 적용하고, 로그와 선택지에는 색만 남겨 보여 준다. 설계·태그 문법·구현 결과는 [dialogue-text-effects.md](dialogue-text-effects.md).
+
+## 다국어
+
+`DialogueRunner`는 `IDialogueTextResolver`로 화자·본문·선택지를 **현재 언어로 해석**해서 `DialogueLine`(줄)과 라벨 목록(선택지)으로 내보낸다. 기록(`Log`)에도 해석된 문자열이 쌓인다. 씬에서는 `DialoguePlayer`가 `LocalizationTextResolver`(선택된 언어의 항목, 없으면 원문)를 주입하고, 테스트는 해석기를 안 주면 원문 그대로다. 태그는 번역 문자열 안에 함께 들어가고 뷰가 파싱한다 — [dialogue-localization.md](dialogue-localization.md).
 
 ## 입력 (`DialogueInputHandler`)
 
@@ -73,7 +77,7 @@ graph TD
 ## 기획 문서와 다른 점 / 스코프 밖
 
 - **`speakerId` 대신 `speakerName` 문자열**과 `portrait` 스프라이트를 노드에 직접 둔다(화자 데이터 애셋 없음).
-- **로컬라이제이션 키가 아니라 원문 문자열**을 `text`에 저장한다(기획 문서 7장은 초기부터 키를 권장 — 로컬라이제이션 파이프라인 도입 시 필드 의미만 바꾸면 되도록 필드는 하나로 유지).
+- **로컬라이제이션**(2026-09-20): 노드의 `text`는 원문(`ko`)이자 폴백이고, 도구가 이를 `Dialogue` 문자열 테이블로 복사해 `localizedText` 참조를 채운다. 기획 문서 7장의 "키만 저장"과 달리 원문과 키를 함께 둔다 — 근거와 작업 흐름은 [dialogue-localization.md](dialogue-localization.md).
 - **Esc = 취소, Tab = 빨리 넘기기로 기획 문서의 Cancel 탭/홀드를 바꿨다**(2026-09-19, 플레이 테스트 결과). 기획 문서는 Cancel 탭 = 기록, 홀드 = 전체 스킵(`End`로 점프)이었는데, 그러면 스킵이 중간의 `SetFlag`/`GiveItem`을 건너뛰는 문제가 있었다. 빨리 넘기기는 이벤트를 실행하면서 진행해서 이 문제가 없다. 취소는 아무것도 실행하지 않는다 — 이미 실행된 이벤트(예: 촌장의 `met_elder`)는 그대로라 다시 말을 걸면 그 플래그에 따른 분기부터 시작한다.
 - **시네마틱 없음** — `isCinematic`, 레터박스, 하단 자막, `CameraCut`, 스킵 게이지 UI. `IDialogueView` 뒤에 시네마틱 뷰를 추가하는 방식으로 붙이면 러너는 바뀌지 않는다.
 - **퀘스트/상점 모달 이벤트 핸들러** — 인터페이스는 준비됨, 구현은 해당 시스템 이후.

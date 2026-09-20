@@ -279,13 +279,16 @@ graph LR
 - `DialogueCondition.cs`, `DialogueChoiceOption.cs`, `DialogueNode.cs` — [Serializable] 데이터(평면 구조), `DialogueNode` → `Game.Items`(`eventItem`)
 - `DialogueSequence.cs` — class DialogueSequence : ScriptableObject
 - `IDialogueFlags.cs` — interface / `DialogueFlagStore.cs` — class DialogueFlagStore : MonoBehaviour, IDialogueFlags, ISaveDataProvider → `Game.Persistence` (키 `dialogue.flags`)
-- `DialogueRunner.cs` — class DialogueRunner (순수 C#, 재생 상태 머신. `Cancel()`/`FastForward()` — 구 `Skip()` 대체, 2026-09-19) / `DialogueLogEntry.cs`
+- `DialogueLine.cs` — struct DialogueLine (현재 언어로 해석된 화자·본문·초상화, `LineShown`이 내보냄, 2026-09-20)
+- `IDialogueTextResolver.cs` — interface IDialogueTextResolver + `AuthoredTextResolver`(원문 그대로) / `LocalizationTextResolver.cs` — Unity Localization 조회, 항목이 없으면 원문 폴백 → `UnityEngine.Localization` (2026-09-20, [dialogue-localization.md](dialogue-localization.md))
+- `DialogueRunner.cs` — class DialogueRunner (순수 C#, 재생 상태 머신. 생성자에 `IDialogueTextResolver` 주입, `ChoicesShown`은 해석된 라벨 목록. `Cancel()`/`FastForward()` — 구 `Skip()` 대체, 2026-09-19) / `DialogueLogEntry.cs`
 - `IDialogueEventHandler.cs` — interface + `DialogueEventContext`; `SetFlagEventHandler.cs`, `GiveItemEventHandler.cs` → `Game.Items`, `Game.Items.Equipment`
 - `IDialogueView.cs` — interface / `DialogueBoxUIView.cs` — class DialogueBoxUIView : MonoBehaviour, IDialogueView (TextMeshPro로 전환 2026-09-20 — `maxVisibleCharacters` 타이핑, 본문에 텍스트 이펙트, 로그/선택지는 정적 색)
 - `DialoguePlayer.cs` — class DialoguePlayer : MonoBehaviour (**씬 composition root**, `Instance`) → `Game.UI.Windows`(`AddInputBlocker`)
 - `DialogueInputHandler.cs` — class DialogueInputHandler : MonoBehaviour (Submit F/Enter, Navigate W/S, Cancel Esc=대화 취소, Skip Tab=빨리 넘기기, Log L. 시작 프레임·실제 창이 열려 있을 때는 입력 무시. 2026-09-19 재작성)
-- `Text/` (2026-09-20, 상세: [dialogue-text-effects.md](dialogue-text-effects.md)) — `DialogueMarkup.cs`(인라인 태그 파서, 순수 C#), `ParsedText.cs`(+`TextSpan`/`TextPause`), `TextTagArgs.cs`, `ITextEffect.cs`(+`GlyphContext`/`GlyphStyle`), `BuiltInTextEffects.cs`(Color/Sway/Wave/Shake/Rainbow), `TextEffectRegistry.cs`(이름 → 효과 팩토리), `TextTypist.cs`(타이핑 시계·일시정지), `DialogueTextAnimator.cs`(MonoBehaviour, TMP 글자별 정점 조작) → `TMPro`
+- `Text/` (2026-09-20, 상세: [dialogue-text-effects.md](dialogue-text-effects.md)) — `DialogueMarkup.cs`(인라인 태그 파서, 순수 C#), `DialogueMarkupValidator.cs`(태그 오류·번역 태그 일치 검사, 순수), `ParsedText.cs`(+`TextSpan`(+`Tag`)/`TextPause`), `TextTagArgs.cs`, `ITextEffect.cs`(+`GlyphContext`/`GlyphStyle`), `BuiltInTextEffects.cs`(Color/Sway/Wave/Shake/Rainbow), `TextEffectRegistry.cs`(이름 → 효과 팩토리), `TextTypist.cs`(타이핑 시계·일시정지), `DialogueTextAnimator.cs`(MonoBehaviour, TMP 글자별 정점 조작) → `TMPro`
 - `DialogueInteractable.cs` — class DialogueInteractable : MonoBehaviour, IInteractable → `Game.Interaction` (구 `Interaction/` 폴더에서 이동)
+- **에디터 도구**(`Assets/Scripts/Editor`, `Game.Editor`, 2026-09-20): `DialogueLocalizationTools.cs`(메뉴 `Game > Dialogue > Sync Sequences To String Table` / `Validate Text Markup`, 테이블 `Dialogue`), `LocalizationSetup.cs`(메뉴 `Game > Localization > Setup Default Locales and Tables` — 로케일 en/ko/ja와 `UIStrings` 테이블). 상세: [dialogue-localization.md](dialogue-localization.md)
 
 ### Interaction/UI (`Game.Interaction.UI`)
 - `InteractionPromptUIView.cs` — class InteractionPromptUIView : MonoBehaviour

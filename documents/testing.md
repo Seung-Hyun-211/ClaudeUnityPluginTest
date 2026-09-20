@@ -8,9 +8,9 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 
 | 어셈블리 | 위치 | 비고 |
 |---|---|---|
-| `Game` | `Assets/Scripts/Game.asmdef` | 게임 코드 전체. `Unity.InputSystem`, `UnityEngine.UI`, `Unity.TextMeshPro`(2026-09-20), URP(`Core.Runtime`, `Universal.Runtime`) 참조 |
-| `Game.Editor` | `Assets/Scripts/Editor/Game.Editor.asmdef` | 에디터 전용(`ItemDatabaseEditor`). `Editor` 폴더 규칙은 asmdef 안에서는 적용되지 않아서 별도 asmdef가 필요하다 |
-| `Game.Tests.EditMode` | `Assets/Tests/EditMode/Game.Tests.EditMode.asmdef` | 에디터 전용, `Game` 참조, NUnit |
+| `Game` | `Assets/Scripts/Game.asmdef` | 게임 코드 전체. `Unity.InputSystem`, `UnityEngine.UI`, `Unity.TextMeshPro`(2026-09-20), `Unity.Localization`·`Unity.ResourceManager`(2026-09-20, 언어 초기화 핸들 타입), URP(`Core.Runtime`, `Universal.Runtime`) 참조 |
+| `Game.Editor` | `Assets/Scripts/Editor/Game.Editor.asmdef` | 에디터 전용(`ItemDatabaseEditor`, `LocalizationSetup`, `DialogueLocalizationTools`). `Editor` 폴더 규칙은 asmdef 안에서는 적용되지 않아서 별도 asmdef가 필요하다 |
+| `Game.Tests.EditMode` | `Assets/Tests/EditMode/Game.Tests.EditMode.asmdef` | 에디터 전용, `Game`·`Unity.Localization` 참조, NUnit |
 
 새 외부 패키지(TextMeshPro 등)를 게임 코드에서 쓰기 시작하면 `Game.asmdef`의 참조에 추가해야 컴파일된다. 기존 씬/프리팹의 스크립트 참조는 GUID 기반이라 분리로 깨지지 않았다(14개 씬 확인).
 
@@ -19,7 +19,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 - 에디터: Window > General > Test Runner > EditMode.
 - 열려 있는 에디터에 CLI로 실행하려면 `TestRunnerApi`를 `runSynchronously = true`로 호출하는 스크립트를 `unity command run_script`로 돌린다(`unity test`는 프로젝트를 여는 별도 에디터 프로세스를 띄우므로 이미 열린 프로젝트와 충돌한다).
 
-## 현재 범위 (122개)
+## 현재 범위 (131개)
 
 | 파일 | 대상 |
 |---|---|
@@ -30,6 +30,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 | `DialogueMarkupTests` | 태그 파싱: 평문 인덱스(한글 문장), 중첩·인자·기본값, 색 이름/hex, 모르는 태그·`<`·`<waves>`는 글자 그대로, `\<` 이스케이프, 안 닫힘/짝 안 맞음/바깥 태그가 안쪽을 닫음 + 경고, 빈 구간 제거, `pause` 위치, 대소문자, 레지스트리 확장, `ToStaticMarkup`(안쪽 색 우선·`<` 이스케이프) |
 | `TextEffectTests` | `sway`(좌우만·진폭·글자별 위상·주기), `wave`(상하만), 효과 오프셋 합산, `shake`(결정적·진폭 안·한 스텝 동안 유지·글자별 다름), `color`, `rainbow`(시간/글자별 변화·알파 유지·주기) |
 | `TextTypistTests` | 타이핑 속도, `pause`(그 자리에서 멈춤·정확한 시간·맨 앞/맨 끝), `Complete`, 속도 0에서 멈춤 없음, 빈 텍스트, `Reset` |
+| `DialogueLocalizationTests` | 러너가 화자·본문·로그·선택지를 `IDialogueTextResolver`로 해석, 해석기 없으면 원문·태그 그대로, `LocalizationTextResolver` 참조 없음 폴백, `DialogueMarkupValidator`(어순이 달라도 통과 / 태그 누락·추가·인자 변경 / `<pause>` 개수 / 번역 쪽 마크업 오류), `TextSpan.Tag` 정규화 |
 | `DialogueFlagStoreTests` | 플래그·변경 이벤트, 저장 왕복, `Clear` |
 | `ItemDatabaseTests` | id 조회, 빈/중복/null 검출 |
 | `DropPlacementTests` / `DropPlacementGroundTests` | 흩뿌리기(단일, 간격, 결정성), 지면 탐색(트리거·`Rigidbody`·인터랙터블 무시), 지면에 얹기 |

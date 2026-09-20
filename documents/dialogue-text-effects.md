@@ -5,14 +5,14 @@
 ## 결론
 
 1. **대사 문자열 안에 인라인 태그**로 쓴다: `여정을 <wave>떠났다</wave>`. 구간을 인덱스로 따로 저장하지 않는다 — 번역(로컬라이제이션)으로 글자 수·어순이 바뀌어도 태그가 문장과 함께 움직이기 때문이다.
-2. **파싱은 순수 C#**(`DialogueMarkup`)이 하고 결과는 `평문 + 구간 목록`이다. 러너·`DialogueNode`·`IDialogueView`는 **바뀌지 않는다**(태그가 든 문자열이 그대로 흐른다).
+2. **파싱은 순수 C#**(`DialogueMarkup`)이 하고 결과는 `평문 + 구간 목록`이다. 러너·`DialogueNode`·뷰 인터페이스는 **태그를 해석하지 않는다**(태그가 든 문자열이 그대로 흐른다 — 다국어 때문에 들어온 변경은 [dialogue-localization.md](dialogue-localization.md)).
 3. **효과는 작은 클래스**(`ITextEffect`)로 만들고 이름으로 레지스트리에 등록한다 — 새 효과 = 클래스 하나 + 등록 한 줄(개방-폐쇄). 효과 계산은 UnityEngine 렌더링에 의존하지 않는 순수 함수라서 EditMode 테스트가 된다.
 4. **렌더링은 TextMeshPro의 글자별 정점 조작**으로 한다(`DialogueTextAnimator`). 레거시 UGUI `Text`는 글자별 이동·색이 불가능해서 **대화 UI만 TMP로 옮긴다**.
 
 ```mermaid
 graph TD
     Node["DialogueNode.text<br/>'...<hl>태어난 곳</hl>과...'"]
-    Runner["DialogueRunner (변경 없음)<br/>문자열 그대로 전달"]
+    Runner["DialogueRunner<br/>태그를 해석하지 않고 문자열 그대로 전달"]
     View["DialogueBoxUIView (TMP_Text 사용)"]
     Markup["DialogueMarkup.Parse (순수 C#)<br/>→ 평문 + TextSpan[] + Pause[]"]
     Anim["DialogueTextAnimator : MonoBehaviour<br/>TMP 글자별 정점 조작 (LateUpdate)"]
@@ -59,7 +59,7 @@ graph TD
 | `ITextEffect` | 〃 | `Apply(in GlyphContext, ref GlyphStyle)` — 입력: 줄 안 글자 인덱스, 구간 안 인덱스, 시간(초) / 출력: 위치 오프셋(`Vector2`), 색(`Color32`) 변경. **상태 없는 순수 함수**. |
 | `TextEffectRegistry` | 〃 | 이름 → `Func<args, ITextEffect>`. 기본 효과를 등록. (2단계) 스타일 애셋 조회. |
 | `DialogueTextAnimator` | 〃 (MonoBehaviour) | `TMP_Text` 하나를 맡아 매 프레임 글자별 정점을 다시 쓴다. |
-| `DialogueBoxUIView` | 기존 | `Text` → `TMP_Text`로 교체, 타이핑을 `maxVisibleCharacters`로 구현하고 `Pauses`를 반영. `IDialogueView` 시그니처는 그대로. |
+| `DialogueBoxUIView` | 기존 | `Text` → `TMP_Text`로 교체, 타이핑을 `maxVisibleCharacters`로 구현하고 `Pauses`를 반영. `ShowLine`은 그대로(다국어로 `ShowChoices`만 라벨 목록을 받도록 바뀜). |
 
 효과가 `TMP`를 모르기 때문에(`GlyphStyle`만 만든다) 로직 테스트가 렌더링 없이 된다 — 러너를 뷰에서 분리한 것과 같은 방식(의존성 역전).
 
@@ -80,13 +80,13 @@ graph TD
 
 | 항목 | 판단 |
 |---|---|
-| `DialogueRunner`/`DialogueNode`/`IDialogueView` | **충돌 없음.** 태그는 문자열의 일부라 그대로 흐른다. 러너가 텍스트 내용을 해석하지 않는 원칙 유지. |
-| 대화 기록(`Log`) | 러너는 원문(태그 포함)을 기록한다. **표시 쪽에서** `ToStaticMarkup()`으로 색만 남겨 보이거나 태그를 제거한다 — 안 하면 로그에 `<wave>`가 그대로 찍힌다. **뷰 작업에 포함.** |
+| `DialogueRunner`/`DialogueNode`/`IDialogueView` | **충돌 없음.** 태그는 문자열의 일부라 그대로 흐른다. 러너는 (다국어 해석은 하지만) 태그 내용은 해석하지 않는다. |
+| 대화 기록(`Log`) | 러너는 현재 언어로 해석한 문자열(태그 포함)을 기록한다. **표시 쪽에서** `ToStaticMarkup()`으로 색만 남겨 보이거나 태그를 제거한다 — 안 하면 로그에 `<wave>`가 그대로 찍힌다. **뷰 작업에 포함.** |
 | 선택지 텍스트 | 같은 문법을 쓸 수 있게 `Parse`를 거쳐 평문(또는 정적 색)으로 표시. 움직임은 넣지 않는다(포커스 색 처리와 충돌). |
 | 레거시 UGUI `Text` | 대화 UI(`DialogueBox`, `DialogueChoiceButton` 프리팹과 뷰의 `[SerializeField]` 필드)만 TMP로 교체. HUD·프롬프트 등 다른 UI는 그대로 → 게임 안에 두 종류의 텍스트가 공존한다. 프로젝트 전체 TMP 전환과 폰트 통일은 별도 결정. |
 | 어셈블리 | `Game.asmdef`에 `Unity.TextMeshPro` 참조 추가 필요([testing.md](testing.md)의 "새 외부 패키지" 규칙). TMP는 `com.unity.ugui 2.5.0`에 포함돼 있어 패키지 설치는 불필요. |
 | **폰트** | 해결됨(2026-09-20): `Assets/Fonts`의 NeoHyundai TTF로 동적 `TMP_FontAsset`을 만들어 `DialogueBoxUIView.fontOverride`에 연결했다. TMP 기본 폰트에는 한글이 없어서 이 연결이 없으면 네모로 나온다. 저장소에 포함되는 폰트라 **라이선스 확인**이 필요하다. |
-| 로컬라이제이션 | 인라인 태그는 번역가가 문장과 함께 옮길 수 있어서 호환. 다만 번역 도구가 `<`를 이스케이프하지 않는지 확인 필요(기획 문서 7장 키 방식 도입 시). |
+| 로컬라이제이션 | **해결됨**(2026-09-20, [dialogue-localization.md](dialogue-localization.md)): 태그는 번역 문자열 안에 그대로 들어가고 번역가가 어순에 맞게 옮긴다. `DialogueMarkupValidator`/`Game > Dialogue > Validate Text Markup`이 원문과 번역의 태그 일치를 검사한다. 약점은 번역마다 같은 `<color=#…>`가 복사되는 것 — 스타일 이름(`<hl>`)이 다음 과제. |
 | 세이브/플래그/이벤트 | 무관. |
 | `Cancel`/`FastForward` | 무관(뷰의 `CompleteTyping` 경로 그대로). |
 | 시네마틱(후속) | 하단 자막 뷰도 같은 `Parse` + `DialogueTextAnimator`를 재사용하면 된다(뷰만 다름). |
@@ -102,7 +102,7 @@ graph TD
 2. ✅ `DialogueMarkup` + `ITextEffect` + 기본 효과 + 레지스트리 + `TextTypist` + **EditMode 테스트 39개**.
 3. ✅ `DialogueTextAnimator` + `DialogueBoxUIView`를 TMP·`maxVisibleCharacters`로 이전 + 프리팹 제자리 변환 + 로그/선택지 표시.
 4. ✅ `Test_Dialogue`의 촌장 대사에 태그 추가 — **에디터에서 눈으로 확인은 아직**(아래).
-5. (후속) `DialogueTextStyles`(`<hl>`), `fade`/`pulse`/`speed`, 태그 검증 에디터 도구(`DialogueNode.text` 인스펙터 미리보기).
+5. (후속) `DialogueTextStyles`(`<hl>`), `fade`/`pulse`/`speed`, (✅ 태그 검증 도구는 다국어 작업에서 추가됨) `DialogueNode.text` 인스펙터 미리보기.
 
 ## 구현 결과 (설계와 달라진 점 포함)
 
@@ -111,7 +111,8 @@ graph TD
 - **`TextEffectRegistry.Default`는 전역**이고, 테스트는 `CreateDefault()`로 새 인스턴스를 써서 오염을 피한다.
 - **한글 폰트**: 프로젝트의 `Assets/Fonts/NeoHyundai *.ttf`(R/B/L/EB/EBK)에서 **동적 `TMP_FontAsset`**(`NeoHyundai R SDF`, `NeoHyundai B SDF`)을 만들어 `DialogueBoxUIView.fontOverride`(= R)에 연결했다. 동적 아틀라스라서 화면에 쓰이는 글자만 실행 중에 채운다. 한글·영문·기호 커버리지는 확인했다(`HasCharacters`). 처음에는 OS 폰트(맑은 고딕)로 런타임 임시 애셋을 썼으나(`OsFontProvider`) 이 폰트로 대체하면서 삭제했다. 나머지 굵기(L/EB/EBK)는 TTF만 있고 애셋은 아직 없다 — 필요할 때 같은 방식으로 만든다.
 - **프리팹은 제자리 변환**: `DialogueBox`/`DialogueChoiceButton`의 `Text`를 같은 GameObject 위에서 `TextMeshProUGUI`로 바꿨다. 새로 만들면 `DialogueBoxUIView` 컴포넌트 id가 바뀌어 씬(`DialoguePlayer.view`)의 참조가 끊기기 때문이다.
-- **마크업 경고**는 `ShowLine`에서 `Debug.LogWarning`으로 남긴다(안 닫힌 태그, 잘못된 색 등) — 아직 에디터 검증 도구는 없다.
+- **마크업 경고**는 `ShowLine`에서 `Debug.LogWarning`으로 남긴다(안 닫힌 태그, 잘못된 색 등) — 에디터에서 한꺼번에 검사하려면 `Game > Dialogue > Validate Text Markup`(2026-09-20).
+- **번역 연동**(2026-09-20): `TextSpan.Tag`(정규화한 여는 태그)와 `DialogueMarkupValidator`가 추가됐다. 노드 텍스트·선택지·화자는 `IDialogueTextResolver`를 거쳐 현재 언어로 오고, 그 문자열이 `DialogueMarkup.Parse`로 들어간다.
 - **검증**: EditMode 122개 통과(기존 83 + 39). Play 모드에서 API로 확인 — 본문 폰트가 `NeoHyundai R SDF`로 잡히고 한글 글리프가 들어 있으며(`HasCharacters`), 태그가 벗겨진 평문이 들어가고, 한 프레임 돌렸을 때 `<wave>` 구간의 글자 2개만 움직인다(최대 1.5 단위).
 - **아직 눈으로 못 본 것**(헤드리스라 렌더링 없음): 실제로 흔들리는 모습·무지개 색, 타이핑 중 색/위치가 깜빡이지 않는지(TMP 재생성 타이밍), 줄바꿈이 안 튀는지, 한글이 보기 좋게 나오는지 — `test-scenes.md`의 "Test_Dialogue" 참고.
 

@@ -59,6 +59,7 @@
 - 대화 중에는 이동·점프·달리기·상호작용·퀵슬롯이 막히고(`WindowManager` 입력 차단), 끝난 다음 프레임에 풀린다. (`PlayerLocomotion`이 Space/Shift를 직접 읽어서 처음엔 대화 중 점프가 됐다 — 이제 `windowManager`로 게이팅한다. 프리팹은 씬 오브젝트를 못 가지므로 씬마다 연결한다.)
 - 상점·퀘스트 같은 **실제 창이 대화 위에 열려 있으면**(`WindowManager.IsWindowOpen`) 대화 입력은 멈추고 `Esc`는 그 창만 닫는다.
 - **텍스트 이펙트 샘플**(촌장, [dialogue-text-effects.md](dialogue-text-effects.md)): 첫 인사의 "손님"이 위아래로 물결(`wave`), 다음 줄의 "무슨 일"이 파란색으로 좌우 흔들림(`color`+`sway`), 도움 수락 줄에서 동전 얘기 뒤 0.6초 멈춤(`pause`), "몸조심하게"의 "밤"이 떨림(`shake`), 감사 인사 줄이 무지개(`rainbow`), "둘러보는 중이에요" 답변은 파란색 두 구간이 좌우로 흔들리는 긴 문장. 대화 기록(`L`)에는 색만 남아야 한다.
+- **다국어 확인**: 왼쪽 위 하니스의 `Language` 줄에서 `en`을 누른 뒤 촌장에게 말을 걸면(또는 `Play elder_intro`) 영어 대사가 나오고 **태그가 같은 구간에 그대로 적용**된다(`ko`로 되돌리면 한국어). `jp`는 번역이 없어서 한국어 원문이 나온다. 하니스가 언어를 바꾸는 것은 임시이며 다음 줄부터 적용된다. ([dialogue-localization.md](dialogue-localization.md))
 - 폰트는 `NeoHyundai R SDF`(동적 TMP 폰트, `Assets/Fonts`) — 처음 나오는 글자는 실행 중에 아틀라스에 채워지므로 새 글자가 처음 뜰 때 미세하게 끊길 수 있다.
 
 ## 보류 중인 확인 (아직 할 수 없는 것)
