@@ -329,6 +329,10 @@ namespace Game.Persistence
 - 어댑터는 `DummyCounterSaveProvider`(테스트용 템플릿)와 같은 모양이지만, **플레이어에 붙는 어댑터는 Boot가 아닌 Lobby/Combat 씬에 있으므로** `SaveDataRegistry`를 직렬화 필드로 들 수 없다 — `OnEnable`/`OnDisable`에서 `SaveDataRegistry.Instance?.Register/Unregister`를 쓴다(`PlayerRuntimeContext.Instance` 패턴과 동일).
 - 복원용 훅은 각 서브시스템이 직접 제공한다: `PlayerVitals.RestoreVitals`(감소 로직 우회), `HealthComponent.RestoreHealth`(`Damaged`/`Died` 이벤트 없이 값만 복원 — 로드는 전투 피해가 아니므로).
 
+### 4-5. 알려진 한계 — 씬에 붙은 provider의 데이터는 다른 씬에서 저장하면 사라진다 (2026-09-21)
+
+`SaveToDisk`는 **그 순간 `SaveDataRegistry`에 등록돼 있는 provider만** 순회해서 파일을 새로 쓴다(위 코드). 씬 오브젝트에 붙은 provider(`OnEnable`에서 등록, `OnDisable`에서 해제)는 그 씬이 열려 있을 때만 존재하므로, **다른 씬에서 저장하면 그 씬 provider의 항목이 파일에서 빠진다.** 지금 저장 대상(플레이어 체력·인벤토리·컨테이너·대화 플래그)은 전부 Boot/플레이어처럼 지속되는 쪽에 있어서 문제가 드러나지 않았다. **씬별 데이터를 저장해야 하면**(건축 구조물 — [building-system.md](building-system.md) 10장) 지속 오브젝트가 모든 씬의 데이터를 한꺼번에 들고 provider 하나로 저장하는 구조를 써야 한다.
+
 ## 5. 전체 흐름 요약
 
 ```

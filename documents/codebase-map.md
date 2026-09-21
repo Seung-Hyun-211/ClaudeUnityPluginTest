@@ -24,6 +24,8 @@
 | `Interaction` | `Game.Interaction` | |
 | `Interaction/UI` | `Game.Interaction.UI` | |
 | `Dialogue` | `Game.Dialogue` | 2026-09-19 신설. `DialogueInteractable`도 여기(Interaction → Dialogue → Items → Interaction 순환 방지) |
+| `ActionMode` | `Game.ActionMode` | 2026-09-21 신설(leaf). 전투/건축 모드(`PlayerActionModeSwitch`) — 무기·퀵슬롯·공격 입력 핸들러가 게이팅용으로 참조 |
+| `Building` | `Game.Building` | 2026-09-21 신설. 격자·구조 그래프·스냅·고스트·재료·저장. `Building/UI`는 `Game.Building.UI` |
 | `Combat` | `Game.Combat` | |
 | `Characters/Core` | `Game.Characters` | 폴더명 `Core`가 네임스페이스에 안 붙음 |
 | `Characters/Player` | `Game.Characters.Player` | 위 `Player`(`Game.Player`)와 별개 |
@@ -54,7 +56,8 @@ Layer 0 (외부 Game.* 의존 0, leaf):
   Combat-core(IDamageable/DamageInfo/DamageType),
   AI-core(IAiState/AiStateMachine/IAiBrain),
   UI-core(IBackgroundObscurer), UI.Windows-core(IWindow/SimpleWindow/PopupWindow/IPopupContent),
-  Characters(Core: Faction/AttributeSet/CharacterMotor 등)
+  Characters(Core: Faction/AttributeSet/CharacterMotor 등),
+  ActionMode(PlayerActionModeSwitch — 2026-09-21, QuickSlot/Weapons/Characters.Player 입력 핸들러가 게이팅용으로 참조)
 
 Layer 1 (Layer 0에만 의존):
   Combat(HealthComponent/ArmorComponent) -> Player
@@ -70,6 +73,7 @@ Layer 2 (Layer 0~1 조합):
   Weapons -> Items, Combat, Interaction, UI.Windows  [WeaponLoadoutInputHandler, #3; WeaponWorldSpawner/WeaponPickup -> Items.World 팩토리, 2026-09-19]
   Items.UI -> Items.Grid, Items.Equipment, Player, UI.Windows
   Dialogue -> Interaction, Items(+Equipment), Persistence, UI.Windows  [DialogueInteractable/DialoguePlayer/GiveItemEventHandler/DialogueFlagStore, 2026-09-19]
+  Building -> Items, Combat, Interaction, Persistence, ActionMode, UI.Windows, Characters(CharacterMotor)  [2026-09-21, building-system.md. `Building`을 참조하는 모듈은 없음]
   HUD.Markers/Compass/Minimap -> (내부) HUD.Markers
   AI.StateMachine(AiSensor/AiContext) -> Characters, Combat
 
@@ -142,6 +146,15 @@ graph LR
   CharNpc --> Characters
   CharNpc --> Combat
   Persistence --> Interaction
+  Building --> Items
+  Building --> Combat
+  Building --> Interaction
+  Building --> Persistence
+  Building --> UIWindows
+  Building --> ActionMode
+  QuickSlot --> ActionMode
+  Weapons --> ActionMode
+  CharPlayer --> ActionMode
   Dialogue --> Interaction
   Dialogue --> ItemsEquip
   Dialogue --> Persistence
@@ -289,6 +302,14 @@ graph LR
 - `Text/` (2026-09-20, 상세: [dialogue-text-effects.md](dialogue-text-effects.md)) — `DialogueMarkup.cs`(인라인 태그 파서, 순수 C#), `DialogueMarkupValidator.cs`(태그 오류·번역 태그 일치 검사, 순수), `ParsedText.cs`(+`TextSpan`(+`Tag`)/`TextPause`), `TextTagArgs.cs`, `ITextEffect.cs`(+`GlyphContext`/`GlyphStyle`), `BuiltInTextEffects.cs`(Color/Sway/Wave/Shake/Rainbow), `TextEffectRegistry.cs`(이름 → 효과 팩토리), `TextTypist.cs`(타이핑 시계·일시정지), `DialogueTextAnimator.cs`(MonoBehaviour, TMP 글자별 정점 조작) → `TMPro`
 - `DialogueInteractable.cs` — class DialogueInteractable : MonoBehaviour, IInteractable → `Game.Interaction` (구 `Interaction/` 폴더에서 이동)
 - **에디터 도구**(`Assets/Scripts/Editor`, `Game.Editor`, 2026-09-20): `DialogueLocalizationTools.cs`(메뉴 `Game > Dialogue > Sync Sequences To String Table` / `Validate Text Markup`, 테이블 `Dialogue`), `LocalizationSetup.cs`(메뉴 `Game > Localization > Setup Default Locales and Tables` — 로케일 en/ko/ja와 `UIStrings` 테이블). 상세: [dialogue-localization.md](dialogue-localization.md)
+
+### ActionMode (`Game.ActionMode`, 2026-09-21 신설) / Building (`Game.Building`, 2026-09-21 신설) — 상세: [building-system.md](building-system.md)
+- `ActionMode/PlayerActionModeSwitch.cs` — enum PlayerActionMode(Combat/Build) + interface IPlayerActionMode + class PlayerActionModeSwitch : MonoBehaviour. `PlayerInputHandler`(LMB 공격)·`WeaponLoadoutInputHandler`·`QuickSlotInputHandler`가 옵션 필드로 참조해 건축 모드에서 입력을 무시(이동은 유지)
+- 순수 로직: `Building/PieceKey.cs`(Axis·PieceKind·PieceKey), `BuildGeometry.cs`(셀·엣지·꼭짓점 인접), `BuildGrid.cs`(스냅·레벨·월드 배치), `StructureGraph.cs`(지지·연쇄 붕괴·필러), `StructureSaveData.cs`(PieceRecord·SceneStructures·StructureSaveData)
+- 데이터: `BuildPieceData.cs`(+BuildCategory·BuildCost), `BuildCatalog.cs` → `Game.Items`(ItemData). 씬: `BuildZone.cs`
+- 런타임: `StructureManager.cs`(그래프↔오브젝트, 붕괴, 스냅샷/복원), `StructureRepository.cs`(ISaveDataProvider `building.structures`, 지속 오브젝트용) → `Game.Persistence`, `BuildPiece.cs`/`BuildDoor.cs`(IInteractable) → `Game.Combat`/`Game.Interaction`, `BuildModeController.cs`(조준→스냅→검증→배치/철거) → `Game.Characters`(CharacterMotor)·`Game.Items`, `IAimSource.cs`+`CameraAimSource.cs`, `GhostPreview.cs`(+`Assets/Shaders/BuildGhost.shader`), `BuildInputHandler.cs` → `Game.UI.Windows`, `UI/BuildPaletteUIView.cs` → TMPro
+- 재료: `Items/Inventory/IItemStore.cs`, `Items/Equipment/PlayerItemStore.cs`(Pocket→Rig→Backpack→플랫), `GridInventory.CountOf`/`RemoveQuantity`
+- 하니스: `DebugHarness/BuildTestHarness.cs`
 
 ### Interaction/UI (`Game.Interaction.UI`)
 - `InteractionPromptUIView.cs` — class InteractionPromptUIView : MonoBehaviour

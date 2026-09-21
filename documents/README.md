@@ -27,6 +27,7 @@
 - [dialogue-system.md](dialogue-system.md) — 텍스트 대화: 노드 그래프(`DialogueSequence`)를 순수 C# `DialogueRunner`가 재생하고, 뷰(`IDialogueView`)·이벤트 핸들러(`IDialogueEventHandler`)·스토리 플래그(세이브 연동)를 분리. 대화 중 게임 입력 차단은 `WindowManager.AddInputBlocker`. 시네마틱·퀘스트/상점 모달은 후속
 - [dialogue-text-effects.md](dialogue-text-effects.md) — 대사 안 특정 구간의 색·움직임(좌우 흔들림·물결·떨림·무지개)·일시정지 연출. 인라인 태그 + 순수 C# 파서/효과 + TMP 글자별 정점 조작. **1단계 구현됨**, 폰트는 NeoHyundai 동적 TMP 애셋
 - [dialogue-localization.md](dialogue-localization.md) — 대사 다국어(Unity Localization `Dialogue` 테이블, 원문(ko)은 노드에서 저작하고 도구가 테이블로 동기화) + 번역 문자열 안의 텍스트 이펙트 태그 규칙, 번역 태그 검증 도구, 폰트(한자 미지원)·스타일 이름 후속. **구현됨**
+- [building-system.md](building-system.md) — 건축(맵빌딩): 1m 격자 · 벽/바닥/문/코너 필러(1단계, 계단·사다리·적 대응은 2단계), 순수 C# 스냅·지지·연쇄 붕괴 그래프, `Game.ActionMode`로 건축 모드일 때 무기·퀵슬롯 입력 게이팅, 재료 집계·차감, 세이브 저장(지속 저장소). **1단계 구현됨**(벽·바닥·문·필러)
 
 ### 씬 / 지속성
 
@@ -34,12 +35,12 @@
 
 ### 테스트 환경
 
-- [testing.md](testing.md) — 자동 EditMode 테스트(131개): 어셈블리 분리(`Game`/`Game.Editor`/`Game.Tests.EditMode`), 실행 방법, 범위, 변이 확인, 아직 없는 곳
+- [testing.md](testing.md) — 자동 EditMode 테스트(198개): 어셈블리 분리(`Game`/`Game.Editor`/`Game.Tests.EditMode`), 실행 방법, 범위, 변이 확인, 아직 없는 곳
 - [test-scenes.md](test-scenes.md) — 시스템별 테스트 씬(`Assets/Scenes/Tests`)과 OnGUI 디버그 하니스 목록, 사용법, 헤드리스 CLI로 검증할 수 없어서 에디터에서 직접 확인해야 하는 항목
 
 ### 설계 검증
 
-- [design-conflict-review.md](design-conflict-review.md) — `documents/`(엔지니어링 설계)와 [`Docs/`](../Docs)(기획 문서, `claude/shooting-game-design-doc-h4cm46` 브랜치에서 병합)를 대조 검증한 결과. 퀵슬롯 vs 무기 슬롯의 숫자키 충돌은 해결됨(`1`/`2`/`3` 무기 고정, 퀵슬롯은 `4`~`0`), 무기 정확도/반동 모델 불일치는 여전히 남음, 나머지는 통합 공백 또는 정합 확인
+- [design-conflict-review.md](design-conflict-review.md) — `documents/`(엔지니어링 설계)와 [`Docs/`](../Docs)(기획 문서, `claude/shooting-game-design-doc-h4cm46` 브랜치에서 병합)를 대조 검증한 결과. 퀵슬롯 vs 무기 슬롯의 숫자키 충돌은 해결됨(`1`/`2`/`3` 무기 고정, 퀵슬롯은 `4`~`0`), 무기 정확도/반동 모델 불일치는 여전히 남음, 나머지는 통합 공백 또는 정합 확인. 건축(맵빌딩) 시스템 기획의 구현 전 검토는 13번(선행 결정 4개)
 
 ## 코드 위치 요약
 
@@ -77,6 +78,8 @@
 | 씬 카탈로그/전환 컨트롤러 | `Assets/Scripts/SceneFlow` | `Game.SceneFlow` | 구현됨 |
 | 세이브/로드(ISaveDataProvider) | `Assets/Scripts/Persistence` | `Game.Persistence` | 구현됨(PlayerVitals/Health/컨테이너·인벤토리/대화 플래그 어댑터 연동 완료, 퀵슬롯/AttributeSet/무기는 아직) |
 | 대화(시퀀스/러너/뷰/이벤트 핸들러/플래그) | `Assets/Scripts/Dialogue` | `Game.Dialogue` | 구현됨(텍스트 대화만, 시네마틱·퀘스트/상점 이벤트는 후속) |
+| 조작 모드(전투/건축, 입력 핸들러 게이팅) | `Assets/Scripts/ActionMode` | `Game.ActionMode` | 구현됨 |
+| 건축(격자·구조 그래프·스냅·고스트·재료·저장) | `Assets/Scripts/Building`, `Building/UI` | `Game.Building`, `Game.Building.UI` | 1단계 구현됨(벽·바닥·문·필러) — [building-system.md](building-system.md) |
 | 로컬라이제이션 데이터(로케일 en/ko/jp, `UIStrings`·`Dialogue` 문자열 테이블) | `Assets/Localization`, `Assets/AddressableAssetsData` | — | 구현됨(대사 연동만, 나머지 UI 문자열 이전은 후속) — [dialogue-localization.md](dialogue-localization.md) |
 | 프리팹(Player/Enemy/NPC/월드 아이템/그리드·대화 UI) | `Assets/Prefabs` | — | 구현됨 |
 | 테스트 씬/디버그 하니스 | `Assets/Scenes/Tests`, `Assets/Scripts/DebugHarness` | `Game.DebugHarness` | 구현됨 — [test-scenes.md](test-scenes.md) |

@@ -19,7 +19,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 - 에디터: Window > General > Test Runner > EditMode.
 - 열려 있는 에디터에 CLI로 실행하려면 `TestRunnerApi`를 `runSynchronously = true`로 호출하는 스크립트를 `unity command run_script`로 돌린다(`unity test`는 프로젝트를 여는 별도 에디터 프로세스를 띄우므로 이미 열린 프로젝트와 충돌한다).
 
-## 현재 범위 (131개)
+## 현재 범위 (198개)
 
 | 파일 | 대상 |
 |---|---|
@@ -31,6 +31,9 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 | `TextEffectTests` | `sway`(좌우만·진폭·글자별 위상·주기), `wave`(상하만), 효과 오프셋 합산, `shake`(결정적·진폭 안·한 스텝 동안 유지·글자별 다름), `color`, `rainbow`(시간/글자별 변화·알파 유지·주기) |
 | `TextTypistTests` | 타이핑 속도, `pause`(그 자리에서 멈춤·정확한 시간·맨 앞/맨 끝), `Complete`, 속도 0에서 멈춤 없음, 빈 텍스트, `Reset` |
 | `DialogueLocalizationTests` | 러너가 화자·본문·로그·선택지를 `IDialogueTextResolver`로 해석, 해석기 없으면 원문·태그 그대로, `LocalizationTextResolver` 참조 없음 폴백, `DialogueMarkupValidator`(어순이 달라도 통과 / 태그 누락·추가·인자 변경 / `<pause>` 개수 / 번역 쪽 마크업 오류), `TextSpan.Tag` 정규화 |
+| `BuildGridTests` | 건축 격자: 레벨 공식(바닥 옆면·벽 옆면·경계·지면 높이), 바닥/벽/문 스냅(음수 좌표·동점), 중심 위치·크기·회전, 지면 바닥이 지면과 같은 높이, 벽이 다음 층 슬래브에 닿음 |
+| `StructureGraphTests` | 구조 그래프: 배치 조건(지면·벽/문·다층·필러 지지), 슬롯 점유, 문↔벽 교체, 필러 생성·공유·제거, 연쇄 붕괴(바닥 → 벽, 벽 → 위층 바닥 → 그 위 벽), 필러 파괴 → 인접 벽, 결과 중복 없음 |
+| `BuildingSupportTests` | 저장 데이터 JSON 왕복·씬별 교체, `PieceKey` 슬롯, `PlayerItemStore`(합산·원자적 차감·작은 스택 먼저·`GridChanged`·추가), `PlayerActionModeSwitch`, 카탈로그·환급 |
 | `DialogueFlagStoreTests` | 플래그·변경 이벤트, 저장 왕복, `Clear` |
 | `ItemDatabaseTests` | id 조회, 빈/중복/null 검출 |
 | `DropPlacementTests` / `DropPlacementGroundTests` | 흩뿌리기(단일, 간격, 결정성), 지면 탐색(트리거·`Rigidbody`·인터랙터블 무시), 지면에 얹기 |
@@ -39,11 +42,13 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 
 ## 검증 방법: 변이 확인
 
-테스트가 실제로 버그를 잡는지 확인하려고 코드를 일부러 망가뜨려 봤다. 세 곳 모두 테스트가 실패했다(원복 후 통과).
+테스트가 실제로 버그를 잡는지 확인하려고 코드를 일부러 망가뜨려 봤다. 다섯 곳 모두 테스트가 실패했다(원복 후 통과).
 
 1. `GridItemDragMover` 원위치 복귀가 회전을 잊게 함 → `Move_TargetFull_RestoresTheItemToItsOriginalCellAndOrientation` 실패
 2. `DialogueRunner`가 거절 분기를 무시하게 함 → `ModalEvent_PausesUntilTheHandlerCompletes_ThenFollowsAcceptedOrDeclined` 실패
 3. `DropPlacement`가 인터랙터블을 지면으로 치게 함 → 처음엔 **어떤 테스트도 실패하지 않았고**(빈틈), `DropPlacementGroundTests`를 추가한 뒤 잡힘
+4. `StructureGraph`에서 필러 제거가 위층 바닥을 다시 검사하지 않게 함 → 4개 실패 (건축, 2026-09-21)
+5. `StructureGraph`에서 엣지가 바닥 없이도 서게 함 → 8개 실패 (건축, 2026-09-21)
 
 ## 테스트 작성 규칙
 
@@ -55,6 +60,7 @@ Unity의 테스트 어셈블리는 기본 어셈블리(`Assembly-CSharp`)를 참
 
 ## 아직 테스트가 없는 곳
 
+- **건축의 씬 쪽**(`StructureManager`/`BuildModeController`/`GhostPreview`/`BuildInputHandler`)은 `Awake`/물리가 필요해서 EditMode 대신 Play 모드 API 프로브로 검증했다([building-system.md](building-system.md) 16장).
 - **물리·프레임이 필요한 것**: `CharacterMotor`(접지·점프 모멘텀), 이동/입력 핸들러, 타이핑 연출, 드래그 UI(`GridItemUIView`/`GridInventoryUIView`). PlayMode 테스트(`Game.Tests.PlayMode`)가 필요하다.
 - **AI/전투**: 상태 머신, `HealthComponent`, `FirearmInstance`/`WeaponLoadout`(순수 로직이 많아 다음 후보).
 - **씬 전환/세이브 서비스**: `SaveGameService`, `SceneFlowController`.

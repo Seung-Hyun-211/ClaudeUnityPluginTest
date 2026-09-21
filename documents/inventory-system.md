@@ -99,6 +99,11 @@ graph LR
 - **버리기** — 장비 슬롯 클릭(`InventoryLayoutView`)은 `Detach` 후 컨테이너를 통째로 드롭한다. 예전에는 안의 아이템만 흩어지고 **컨테이너 자체는 사라졌다**(버그였음).
 - 이 모델은 나중의 "가방 안의 가방"(기획 문서)과 같은 방향이다 — 컨테이너 인스턴스가 자기 내용물을 들고 다닌다.
 
+### 재료 집계와 차감 — `IItemStore` (2026-09-21)
+
+- **`GridInventory.CountOf(item)` / `RemoveQuantity(item, count)`** — 그리드 전체의 아이템 수량 집계와, 스택을 (작은 것부터) 줄여서 빼기(0이 되면 배치 제거, `GridChanged` 발생).
+- **`IItemStore`**(`Items`) — "플레이어가 가진 것 전부"를 하나로 다루는 인터페이스: `CountOf`, `TryConsume`(**원자적** — 모자라면 아무것도 빼지 않음), `Add`(못 담은 수 반환). 구현 **`PlayerItemStore`**(`Items.Equipment`, `Player.prefab`에 붙음)는 Pocket → Rig → Backpack → 플랫 인벤토리 순으로 합산·차감·추가한다(줍기 순서와 같음). 건축 재료 소모가 쓴다([building-system.md](building-system.md) 8장).
+
 ### 드래그 앤 드롭 & 회전
 
 기획 문서([기획문서_인벤토리아이템시스템설계.md](../Docs/기획문서_인벤토리아이템시스템설계.md))의 "드롭한 칸이 안 되면 첫 빈 자리 탐색, 그래도 안 되면 조용히 원위치" 규칙을 구현했다.

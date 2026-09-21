@@ -15,6 +15,7 @@
 | `Test_InteractionWindows` | `WindowManager`, 문 상호작용, 플레이어 HUD | 하니스 버튼 |
 | `Test_Prefabs` | `Enemy`/`VillageNpc`/`CompanionNpc` 프리팹을 `EnemySpawner`/`NpcSpawner`로 런타임 스폰 | Play만 누르면 스폰, 좌상단에 상태 표시 |
 | `Test_PlayerMovement` | `Player.prefab`, WASD/Shift/Space/좌클릭 | 화면에 위치·속도·스태미나·`Grounded` 표시 |
+| `Test_Building` | 건축(1단계): 바닥·벽·문 배치/철거, 고스트, 재료 소모·환급, 연쇄 붕괴, 저장 왕복, 건축 모드 입력 게이팅 | `T` 건축 모드, 하니스로 재료 지급 — 아래 "Test_Building" |
 | `Test_Dialogue` | 대화 시스템: NPC 대화(F), 선택지, 플래그 분기, 아이템 보상, 로그, 스킵 | 촌장/경비병 옆에서 F. 좌상단 하니스로 상태·플래그 확인, 시퀀스 직접 재생, 플래그 리셋 — 아래 "Test_Dialogue" |
 | `SceneFlow/Boot` → `Title`/`Loading`/`Lobby`/`Combat` | 씬 전환, 세이브/로드, `PlayerRuntimeContext` | **Boot에서** Play. `SceneFlowTestHarness` 버튼으로 전환·저장·불러오기 |
 
@@ -48,6 +49,16 @@
 - 스크립트에서 `EditorSceneManager.OpenScene(..., Single)`을 호출하면 이전에 로드한 에셋 참조가 해제되므로, 씬을 연 **뒤에** `AssetDatabase.LoadAssetAtPath`로 다시 불러와 연결한다.
 - 씬 UI에는 `InputSystemUIInputModule`을 쓴다(`StandaloneInputModule`은 Active Input Handling = Input System 설정에서 예외를 던진다).
 - `AddSceneToBuild` 후에는 `AssetDatabase.SaveAssets()`를 호출해야 `EditorBuildSettings.asset`이 디스크에 반영된다.
+
+## Test_Building
+
+[building-system.md](building-system.md) 참고. `Test_Inventory`를 복사해 만든 씬(플레이어·인벤토리 UI 그대로, 하니스 제거) + 12×12 건축 구역(`BuildZone`, 왼쪽 아래 (-6,-6)부터)과 탑다운 카메라 마우스 조준(`CameraAimSource`).
+
+- **키** — `T` 건축 모드 토글, `1` 벽 · `2` 바닥 · `5` 문(`3`/`4`는 2단계 자리 — 눌러도 무시), 좌클릭 배치, 우클릭 철거(사거리 5m), 휠 = 문 경첩 반전, `F`로 문 열기. 건축 모드에서는 좌클릭이 공격이 아니라 배치이고 이동은 그대로 된다.
+- **하니스**(왼쪽 위, `BuildTestHarness`) — 모드·선택·대상·상태(왜 빨간지)·재료 수, `Give 40 wood + 10 metal`, `Damage nearest piece`, `Destroy nearest pillar`(그 꼭짓점의 벽·문이 함께 무너짐), `Capture`/`Clear`/`Restore`(구조물 JSON 왕복).
+- **팔레트** — 건축 모드일 때 화면 아래에 5칸(이름·재료·보유량, 3/4는 "준비 중"), 위쪽에 지금 자리가 안 되는 이유.
+- 규칙: 벽·문은 **바닥이 옆에 있어야** 서고, 문은 벽 위에 놓으면 교체(재료 환급), 캐릭터가 서 있는 칸에는 벽을 못 놓고, 바닥은 지면과 같은 높이로 묻혀 있다(턱 없음).
+- 자동 테스트와 Play 모드 프로브(33개 통과)로 로직·저장·판정을 확인했다. **직접 확인 필요**: 마우스 조준 느낌, 고스트 색 보간, 문이 열리는 모습 — [building-system.md](building-system.md) 16장 "직접 확인".
 
 ## Test_Dialogue
 
