@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.ActionMode;
 using Game.UI.Windows;
 
 namespace Game.Characters.Player
@@ -17,6 +18,8 @@ namespace Game.Characters.Player
     {
         [SerializeField] private PlayerController controller;
         [SerializeField] private WindowManager windowManager;
+        [Tooltip("Optional. While building, left click places pieces instead of attacking; movement is unaffected.")]
+        [SerializeField] private PlayerActionModeSwitch actionMode;
         [SerializeField] private Key moveUpKey = Key.W;
         [SerializeField] private Key moveDownKey = Key.S;
         [SerializeField] private Key moveLeftKey = Key.A;
@@ -32,7 +35,7 @@ namespace Game.Characters.Player
 
             controller.OnMoveInput(ReadMoveInput());
 
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && (actionMode == null || actionMode.IsCombat))
             {
                 controller.OnAttackInput();
             }

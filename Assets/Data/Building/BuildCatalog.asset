@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a1589a93e2d9a12409e48232ad436a6d, type: 3}
+  m_Name: BuildCatalog
+  m_EditorClassIdentifier: Game::Game.Building.BuildCatalog
+  wall: {fileID: 11400000, guid: 93e847ea02979d84b89fc8004f35a883, type: 2}
+  floor: {fileID: 11400000, guid: 37ca9a2ebed58b4489adc7b767fdc69c, type: 2}
+  door: {fileID: 11400000, guid: a011d34f925c225449e7074ad1acacc0, type: 2}
+  pillar: {fileID: 11400000, guid: bb3dff206d030d5428488169134ddb25, type: 2}

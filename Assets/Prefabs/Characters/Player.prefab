@@ -387,6 +387,8 @@ GameObject:
   - component: {fileID: 2552305947486648049}
   - component: {fileID: 4992449419517534278}
   - component: {fileID: 7563871058007999123}
+  - component: {fileID: 8828320811574524183}
+  - component: {fileID: 1951840091747815429}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -597,6 +599,7 @@ MonoBehaviour:
   jumpImpulse: 5
   sprintKey: 51
   jumpKey: 1
+  windowManager: {fileID: 0}
 --- !u!114 &8894951832154328576
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -632,6 +635,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Characters.Player.PlayerInputHandler
   controller: {fileID: 8894951832154328576}
   windowManager: {fileID: 0}
+  actionMode: {fileID: 8828320811574524183}
   moveUpKey: 37
   moveDownKey: 33
   moveLeftKey: 15
@@ -681,3 +685,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Items.Equipment.ContainerEquipmentSaveProvider
   equipment: {fileID: 4425848303056248590}
   database: {fileID: 11400000, guid: 4393106f8594b5e4c9eb668de488746b, type: 2}
+--- !u!114 &8828320811574524183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8278158071938470305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 41314665f66d5494b879b611a6eb550d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game::Game.ActionMode.PlayerActionModeSwitch
+  startMode: 0
+--- !u!114 &1951840091747815429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8278158071938470305}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4d192e0b22f1ec4e8d2f19bbd3b1bb1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game::Game.Items.Equipment.PlayerItemStore
+  equipment: {fileID: 4425848303056248590}
+  flatInventory: {fileID: 0}

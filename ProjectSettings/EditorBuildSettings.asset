@@ -32,6 +32,9 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Tests/Test_Dialogue.unity
     guid: 039f3942e4cb8494a824f14099829dca
+  - enabled: 1
+    path: Assets/Scenes/Tests/Test_Building.unity
+    guid: 5b12c0f371760b24982ae15196ac369c
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: 06b25c572460ea94f8d5197f8bdb4815, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

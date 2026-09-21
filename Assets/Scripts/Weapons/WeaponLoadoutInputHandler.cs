@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using Game.ActionMode;
 using Game.UI.Windows;
 
 namespace Game.Weapons
@@ -22,12 +23,14 @@ namespace Game.Weapons
 
         [SerializeField] private WeaponLoadout loadout;
         [SerializeField] private WindowManager windowManager;
+        [Tooltip("Optional. Keys 1-3 mean building categories while the player is building.")]
+        [SerializeField] private PlayerActionModeSwitch actionMode;
 
         private void Update()
         {
             // design-conflict-review.md #3: UI가 열려 있는 동안은 무기 전환도
             // 게임플레이 입력이므로 함께 막는다.
-            if (Keyboard.current == null || windowManager.IsAnyWindowOpen)
+            if (Keyboard.current == null || windowManager.IsAnyWindowOpen || (actionMode != null && !actionMode.IsCombat))
             {
                 return;
             }

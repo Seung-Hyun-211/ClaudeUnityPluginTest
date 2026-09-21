@@ -139,6 +139,65 @@ namespace Game.Items.Grid
             return removed;
         }
 
+        /// <summary>Total quantity of the item across every stack in the grid.</summary>
+        public int CountOf(ItemData item)
+        {
+            int total = 0;
+            foreach (var placed in placedItems)
+            {
+                if (placed.Stack.Item == item)
+                {
+                    total += placed.Stack.Quantity;
+                }
+            }
+            return total;
+        }
+
+        /// <summary>
+        /// Takes up to <paramref name="quantity"/> of the item out of the grid's
+        /// stacks (smallest stacks first, so big stacks stay intact) and removes
+        /// stacks that run empty.
+        /// </summary>
+        /// <returns>The amount actually removed.</returns>
+        public int RemoveQuantity(ItemData item, int quantity)
+        {
+            if (quantity <= 0)
+            {
+                return 0;
+            }
+
+            var matching = new List<PlacedItem>();
+            foreach (var placed in placedItems)
+            {
+                if (placed.Stack.Item == item)
+                {
+                    matching.Add(placed);
+                }
+            }
+            matching.Sort((a, b) => a.Stack.Quantity.CompareTo(b.Stack.Quantity));
+
+            int removed = 0;
+            foreach (var placed in matching)
+            {
+                if (removed >= quantity)
+                {
+                    break;
+                }
+
+                removed += placed.Stack.Remove(quantity - removed);
+                if (placed.Stack.Quantity <= 0)
+                {
+                    placedItems.Remove(placed);
+                }
+            }
+
+            if (removed > 0)
+            {
+                GridChanged?.Invoke();
+            }
+            return removed;
+        }
+
         /// <summary>Removes every placed item without returning them - for restoring saved contents over the current ones.</summary>
         public void Clear()
         {
