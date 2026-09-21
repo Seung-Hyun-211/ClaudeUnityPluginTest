@@ -304,11 +304,12 @@ graph LR
 - **에디터 도구**(`Assets/Scripts/Editor`, `Game.Editor`, 2026-09-20): `DialogueLocalizationTools.cs`(메뉴 `Game > Dialogue > Sync Sequences To String Table` / `Validate Text Markup`, 테이블 `Dialogue`), `LocalizationSetup.cs`(메뉴 `Game > Localization > Setup Default Locales and Tables` — 로케일 en/ko/ja와 `UIStrings` 테이블). 상세: [dialogue-localization.md](dialogue-localization.md)
 
 ### ActionMode (`Game.ActionMode`, 2026-09-21 신설) / Building (`Game.Building`, 2026-09-21 신설) — 상세: [building-system.md](building-system.md)
-- `ActionMode/PlayerActionModeSwitch.cs` — enum PlayerActionMode(Combat/Build) + interface IPlayerActionMode + class PlayerActionModeSwitch : MonoBehaviour. `PlayerInputHandler`(LMB 공격)·`WeaponLoadoutInputHandler`·`QuickSlotInputHandler`가 옵션 필드로 참조해 건축 모드에서 입력을 무시(이동은 유지)
-- 순수 로직: `Building/PieceKey.cs`(Axis·PieceKind·PieceKey), `BuildGeometry.cs`(셀·엣지·꼭짓점 인접), `BuildGrid.cs`(스냅·레벨·월드 배치), `StructureGraph.cs`(지지·연쇄 붕괴·필러), `StructureSaveData.cs`(PieceRecord·SceneStructures·StructureSaveData)
+- `ActionMode/` — `PlayerActionMode.cs`(enum Combat/Build), `IPlayerActionMode.cs`(읽기 인터페이스 + 쓰기 `IPlayerActionModeSetter` + `IsCombat()` 확장), `PlayerActionModeSwitch.cs`(MonoBehaviour 구현). `PlayerInputHandler`(LMB 공격)·`WeaponLoadoutInputHandler`·`QuickSlotInputHandler`가 옵션 필드로 참조해 건축 모드에서 입력을 무시(이동은 유지)
+- 순수 로직: `Building/PieceKey.cs`(Axis·PieceKind·PieceKey), `BuildGeometry.cs`(셀·엣지·꼭짓점 인접), `BuildGrid.cs`(스냅·레벨 — 종류별 기하는 `PieceGeometry.cs`의 `IPieceGeometry`/`PieceGeometries`에 위임), `StructureGraph.cs`(저장·연쇄 붕괴 — 종류별 규칙은 `PieceRules.cs`의 `IPieceRule`(`FloorRule`/`EdgeRule`/`PillarRule`)에 위임), `StructureSaveData.cs`(PieceRecord·SceneStructures·StructureSaveData), `IBuildPieceState.cs`, `PlacementStatus.cs`
+- 협력자(순수 C# 클래스, 컨트롤러가 조립): `BuildTargetResolver.cs`(조준·스냅), `PlacementValidator.cs`(검증), `BuildEconomy.cs`(재료) → `Game.Items`(IItemStore·IItemDropper)
 - 데이터: `BuildPieceData.cs`(+BuildCategory·BuildCost), `BuildCatalog.cs` → `Game.Items`(ItemData). 씬: `BuildZone.cs`
 - 런타임: `StructureManager.cs`(그래프↔오브젝트, 붕괴, 스냅샷/복원), `StructureRepository.cs`(ISaveDataProvider `building.structures`, 지속 오브젝트용) → `Game.Persistence`, `BuildPiece.cs`/`BuildDoor.cs`(IInteractable) → `Game.Combat`/`Game.Interaction`, `BuildModeController.cs`(조준→스냅→검증→배치/철거) → `Game.Characters`(CharacterMotor)·`Game.Items`, `IAimSource.cs`+`CameraAimSource.cs`, `GhostPreview.cs`(+`Assets/Shaders/BuildGhost.shader`), `BuildInputHandler.cs` → `Game.UI.Windows`, `UI/BuildPaletteUIView.cs` → TMPro
-- 재료: `Items/Inventory/IItemStore.cs`, `Items/Equipment/PlayerItemStore.cs`(Pocket→Rig→Backpack→플랫), `GridInventory.CountOf`/`RemoveQuantity`
+- 재료: `Items/Inventory/IItemStore.cs`, `Items/World/IItemDropper.cs`(+`WorldItemDropper`), `Items/Equipment/PlayerItemStore.cs`(Pocket→Rig→Backpack→플랫), `GridInventory.CountOf`/`RemoveQuantity`
 - 하니스: `DebugHarness/BuildTestHarness.cs`
 
 ### Interaction/UI (`Game.Interaction.UI`)

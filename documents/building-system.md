@@ -92,7 +92,7 @@
 ```
 PlaceResult TryPlace(PieceKind kind, coord, Func<CellCoord,bool> groundSupport)  // added / replaced / 실패 사유
 RemoveResult Remove(PieceKey key)            // 철거·연쇄 붕괴 (제거된 키 목록)
-RemoveResult DestroyPillar(VertexCoord v)    // 피해로 필러 파괴
+IReadOnlyList<PieceKey> Destroy(PieceKey key)  // 피해로 파괴: 자기 + 규칙이 정한 함께 무너지는 것(필러 → 그 꼭짓점의 벽·문)
 bool Contains(PieceKey), IEnumerable<PieceKey> All
 ```
 
@@ -131,16 +131,23 @@ graph TD
 
 | 클래스 | 위치 / 모듈 | 책임 |
 |---|---|---|
-| `IPlayerActionMode`, `PlayerActionMode`(`Combat`/`Build`), `PlayerActionModeSwitch` | `Assets/Scripts/ActionMode` / `Game.ActionMode`(새 leaf 모듈) | 현재 조작 모드와 변경 이벤트. **`Game.Input`이 아닌 이유**: `UnityEngine.Input`을 쓰는 코드와 이름이 겹친다. `QuickSlot`·`Weapons`가 `Characters.Player`(그것들을 참조하는 쪽)에 의존하면 순환이라 최하위에 둔다 |
+| `IPlayerActionMode`(읽기), `IPlayerActionModeSetter`(쓰기), `PlayerActionMode`(`Combat`/`Build`), `PlayerActionModeSwitch`(구현) | `Assets/Scripts/ActionMode` / `Game.ActionMode`(새 leaf 모듈) | 현재 조작 모드와 변경 이벤트. 소비자는 **읽기 인터페이스만** 본다(`IsCombat()` 확장 — 소스가 없으면 전투로 취급해 게이팅이 옵션). **`Game.Input`이 아닌 이유**: `UnityEngine.Input`을 쓰는 코드와 이름이 겹친다. `QuickSlot`·`Weapons`가 `Characters.Player`(그것들을 참조하는 쪽)에 의존하면 순환이라 최하위에 둔다 |
 | `BuildGrid`, `CellCoord`/`VertexCoord`/`EdgeCoord`/`PieceKey` | `Game.Building`(순수) | 3장 |
 | `StructureGraph` | 〃(순수) | 4장 |
 | `BuildPieceData`(SO) | 〃 | `pieceId`, `displayName`(문자열 — 지역화는 후속), `kind`, `prefab`, `maxHealth`, `cost: BuildCost[]{ItemData, count}`, `refundRatio` |
-| `BuildCatalog`(SO) | 〃 | `BuildCategory`(벽=1, 바닥=2, 계단=3, 사다리=4, 문=5) → `BuildPieceData`(3·4는 비어 있음), 필러 데이터, 조회(`pieceId`) |
+| `BuildCatalog`(SO) | 〃 | `entries: {BuildCategory, BuildPieceData}[]` + 필러 데이터. **순수 데이터** — 새 종류·카테고리는 항목 추가(코드 변경 없음). `Get(category)`, `ForKind(kind)`(데이터의 `Kind`로 조회), `Find(pieceId)` |
 | `BuildZone` | 〃(MonoBehaviour) | 격자 원점·`groundY`·범위·`maxLevel`. 구역 밖에는 배치 불가 |
 | `BuildPiece` | 〃(MonoBehaviour) | 키·데이터·HP 연결. 프리팹에 `HealthComponent`와 함께(`RequireComponent`). 레이·오버랩에 맞은 콜라이더에서 **`GetComponentInParent<BuildPiece>()`** 로 식별한다 — 레이어도 태그도 쓰지 않는다 |
 | `BuildDoor` | 〃(MonoBehaviour, `IInteractable`) | 경첩(`hinge`)을 돌려 여닫는 문. 열림·경첩 방향을 저장 |
 | `StructureManager` | 〃(MonoBehaviour, 씬) | 그래프 소유, 오브젝트 생성/파괴, `HealthComponent.Died` 구독 → 붕괴 처리, 저장 동기화 |
-| `BuildModeController` | 〃(MonoBehaviour, 씬 composition root) | 7장 흐름 |
+| `BuildModeController` | 〃(MonoBehaviour, 씬 composition root) | 아래 협력자들을 조립하고 선택 상태·대상·고스트를 관리, 배치/철거를 요청(7장 흐름) |
+| `BuildTargetResolver` | 〃(순수 C# 클래스) | 조준 레이 → 캐릭터 제외·피스 우선 → 그리드 스냅. 철거 대상 피스 찾기 |
+| `PlacementValidator` | 〃(순수 C# 클래스) | 구역·받침·사거리·캐릭터 막힘·재료를 검사해 `PlacementStatus`를 돌려줌 |
+| `BuildEconomy` | 〃(순수 C# 클래스) | 비용 확인·원자적 지불·환급(넘치는 것은 `IItemDropper`로 드롭) |
+| `IPieceRule` + `PieceRules` | 〃(순수) | **종류별 구조 규칙**(`FloorRule`/`EdgeRule`/`PillarRule`): 배치 조건, 함께 생기는 것, 의존하는 것, 지지 여부, 파괴 시 함께 무너지는 것. `StructureGraph`는 종류를 모르고 규칙에 묻는다 |
+| `IPieceGeometry` + `PieceGeometries` | 〃(순수) | **종류별 기하**(스냅·크기·중심·회전). `BuildGrid`는 이 레지스트리에 위임 |
+| `IBuildPieceState` | 〃 | 상태를 가진 피스(문)가 구현. `StructureManager`는 이 인터페이스로만 배치·저장·복원 시 상태를 다룸 |
+| `IItemDropper` + `WorldItemDropper` | `Game.Items` | 아이템을 월드에 떨어뜨림 — `WorldItemFactory` 싱글턴 직접 호출을 대신 |
 | `IAimSource`, `CameraAimSource` | 〃 | `bool TryGetRay(out Ray)`. `CameraAimSource`는 화면 중앙 또는 마우스 위치(탑다운 테스트 씬)의 레이. 카메라/시점 시스템(#6)이 생기면 교체 |
 | `GhostPreview` | 〃 | 고스트 인스턴스, `BuildGhost` 셰이더(Unlit 반투명), 초록↔빨강 0.1초 보간 |
 | `BuildInputHandler` | 〃 | 폴링 관용구(`Keyboard.current`/`Mouse.current`). `IsAnyWindowOpen`이면 무시 |
@@ -152,7 +159,7 @@ graph TD
 
 ## 6. 입력과 모드
 
-우리는 Action Map을 쓰지 않는다([design-conflict-review.md](design-conflict-review.md) #3) — 기획의 "Player 맵에 액션 추가"는 **핸들러 게이팅**으로 옮긴다. 기존 `windowManager` 게이팅과 같은 패턴이다: 각 핸들러가 (선택 필드인) `IPlayerActionMode`를 들고 있다가 `Build`이면 즉시 리턴한다.
+우리는 Action Map을 쓰지 않는다([design-conflict-review.md](design-conflict-review.md) #3) — 기획의 "Player 맵에 액션 추가"는 **핸들러 게이팅**으로 옮긴다. 기존 `windowManager` 게이팅과 같은 패턴이다: 각 핸들러가 (선택 필드인 `MonoBehaviour actionModeSource`를 `IPlayerActionMode`로 캐스팅해) 들고 있다가 `!mode.IsCombat()`이면 즉시 리턴한다.
 
 | 입력 | 전투 모드 | 건축 모드 |
 |---|---|---|
@@ -195,7 +202,7 @@ graph TD
 ## 9. HP와 파괴
 
 - 피스 프리팹에 기존 **`HealthComponent`**(`IDamageable`)를 둔다. `BuildPieceData.maxHp`를 `SetMaxHealth`로 주입.
-- `Died` → `StructureManager`가 `StructureGraph.Remove`(필러는 `DestroyPillar`) → 돌려받은 키의 오브젝트를 모두 파괴. 피해로 파괴된 것은 환급 없음.
+- `Died` → `StructureManager`가 `StructureGraph.Destroy`(필러면 그 꼭짓점의 벽·문이 함께 나옴 — `PillarRule.Collateral`) → 돌려받은 키의 오브젝트를 모두 파괴. 피해로 파괴된 것은 환급 없음.
 - **1단계에서는 구조물에 `FactionMember`를 달지 않는다** → `AiSensor`가 무시하고, 플레이어 공격도 적대 판정에 실패해 구조물을 깎지 않는다(자기 벽을 부수는 사고 방지). 진영 정책은 2단계에서 정한다.
 - 문은 새 `BuildDoor`(`IInteractable`, `F`)로 여닫는다 — 기존 `DoorInteractable`은 `Animator` 파라미터(`IsOpen`)를 요구해서 애니메이터 애셋 없이 쓸 수 없다. 닫힘일 때 문짝 콜라이더가 통행을 막고 열리면 경첩을 돌려 문틀을 비운다(95°, 방향은 휠로 반전). 열림·경첩 방향은 저장한다.
 
@@ -291,3 +298,38 @@ graph TD
 ### 직접 확인 (`Test_Building`, 에디터 Play)
 
 `T`로 건축 모드 → 왼쪽 위 하니스의 `Give 40 wood + 10 metal` → `2`로 바닥 → 마우스를 바닥 위로(초록 고스트) → 좌클릭 → `1`로 벽을 바닥 가장자리에 → 좌클릭 → `5`로 문을 벽 위에 놓아 교체 → `F`로 문 열기(휠로 경첩 반전) → 우클릭으로 철거(재료 환급) → 하니스의 `Destroy nearest pillar`로 연쇄 붕괴, `Capture`/`Clear`/`Restore`로 저장 왕복. 건축 모드에서는 좌클릭이 공격이 아니라 배치이고 이동은 그대로 되는지도 본다.
+
+## 17. SOLID 점검과 리팩터링 (2026-09-21)
+
+1단계 구현 뒤 SOLID를 점검해서 아쉬운 곳을 2단계(계단·사다리)를 넣기 **전에** 고쳤다. 점검 결과와 조치:
+
+| 원칙 | 발견 | 조치 |
+|---|---|---|
+| **S** | `BuildModeController`가 조준·스냅·검증 5종·재료·고스트·선택 상태를 모두 했음(333줄). `StructureManager`는 문 상태를 직접 알고 있었음 | `BuildTargetResolver`(조준·스냅), `PlacementValidator`(검증), `BuildEconomy`(재료)로 분리 — 컨트롤러는 조립·상태·고스트만(약 200줄). 문 상태는 `IBuildPieceState`로 |
+| **O** | `PieceKind` `switch`가 `BuildCatalog`·`BuildGrid`·`StructureGraph`에 흩어져 있어 새 종류마다 여러 곳 수정 | 종류별 차이를 **전략 객체**로: 구조 규칙 `IPieceRule`, 기하 `IPieceGeometry`, 카탈로그는 데이터 항목. 새 종류 = 규칙 + 기하 + 데이터 항목 |
+| **L** | `BuildCatalog.KindOf`가 사용 불가 카테고리에 `Wall`을 돌려주던 방어 코드 | 삭제(카테고리 → 데이터의 `Kind`로 결정) |
+| **I** | 이미 작음 | 모드는 읽기(`IPlayerActionMode`)와 쓰기(`IPlayerActionModeSetter`)를 분리 — 쓰기는 `BuildInputHandler`만 |
+| **D** | `IPlayerActionMode`를 만들고도 소비자는 구체 클래스 `PlayerActionModeSwitch` 참조. `WorldItemFactory.Instance` 직접 호출. `CharacterMotor` 구체 타입 | 소비자를 `MonoBehaviour` 소스 + 인터페이스 캐스팅(프로젝트 관례)으로, 드롭은 `IItemDropper`, "캐릭터인가"는 컨트롤러 한 곳(`IsCharacter`)에서만 주입 |
+
+- **남긴 의도적 예외**: `StructureManager`→`StructureRepository.Instance`, `StructureRepository`→`SaveDataRegistry.Instance`는 정적 접근을 유지했다. 저장소는 다른 씬(Boot)에 있어서 인스펙터로 참조할 수 없고, 프로젝트의 다른 저장 어댑터가 같은 방식이다.
+- **2단계에 미치는 효과**: 계단은 `IPieceRule`(3칸 점유·시작 칸 받침)과 `IPieceGeometry`(3칸 경사 배치)를 새로 만들어 `PieceRules`/`PieceGeometries`에 등록하고 `PieceKind` 값과 카탈로그 항목을 추가하면 된다 — `StructureGraph`·`BuildGrid`·`StructureManager`·`BuildModeController`는 바뀌지 않는다.
+- **검증**: 기존 테스트를 그대로 통과했고(내부 구조만 바뀜) 확장 지점 테스트 `BuildingDesignTests` 15개를 더했다(규칙/기하 교체, 카탈로그 데이터, 경제, 모드 인터페이스). 변이 확인 1건 추가(필러 파괴가 벽을 안 데려가게 → 2개 실패). EditMode **211개** 통과, Play 프로브 33개 재통과, 5개 씬에서 새 콘솔 에러 없음.
+- **부수적으로 알게 된 것**: 이 과정에서 에디터가 한 번 응답 없음 상태가 되어 재시작했다(코드 무한 루프는 아니었고, 재시작 뒤 같은 테스트가 모두 통과) — 원인은 확인하지 못했다.
+
+## 18. 푸시 전 설계 점검 (2026-09-21)
+
+코드를 다시 읽고 Play 모드 프로브로 확인해서 찾은 문제와 조치.
+
+**고친 것**
+1. **씬을 나갈 때 구조물이 사라질 위험** — 저장소가 매니저의 `OnDisable`에서 스냅샷을 뜨는데, 씬이 내려가는 순서에 따라 피스 오브젝트가 먼저 없어지면 스냅샷이 불완전해져 저장된 구조물을 덮어쓸 수 있었다. 이제 ① 저장소가 매니저의 `Changed`마다 스냅샷을 갱신하고, ② **모든 피스 오브젝트가 살아 있을 때만**(`CanSnapshotCompletely`) 저장하며, ③ 불완전하면 마지막 정상 스냅샷을 유지하고, ④ `Snapshot`은 이미 없어진 피스를 건너뛴다. (프로브: 피스 하나를 몰래 파괴하고 매니저를 끈 뒤에도 4개가 그대로 남는 것 확인.)
+2. **재료를 내지 않고 지어질 수 있던 경로** — 배치 후에 비용을 냈다. 이제 **지불 먼저**(`TryPay`), 배치가 실패하면 전액 반환(`BuildEconomy.RefundAll`).
+3. **물리 질의 버퍼가 작았다** — 조준 레이(16→32), 겹침 검사(16→64). 피스가 빽빽한 곳에서 캐릭터 콜라이더가 버퍼 밖으로 밀려 막힘 검사를 놓칠 수 있었다.
+4. **카탈로그 설정 실수가 조용히 통과했다** — 피스를 종류로 찾기 때문에 같은 종류의 항목이 둘이면 둘째는 절대 쓰이지 않는다. `BuildCatalog.FindProblems()`(+`OnValidate` 경고)가 중복 종류·중복 카테고리·데이터/프리팹 누락·필러가 카테고리에 들어간 경우를 알려 준다.
+
+**알고 있는 한계 (고치지 않음)**
+- **같은 종류의 변형(나무 벽 / 금속 벽)은 지원하지 않는다** — 좌표 키에 변형이 없고 저장·생성이 종류로 조회한다. 필요해지면 `PieceKey`나 레코드에 변형 id를 더해야 한다(위 4번이 경고해 준다).
+- 문의 경첩이 X축 엣지에서는 시작 쪽, Z축 엣지에서는 반대쪽 끝에 붙는다(프리팹을 90° 돌리기 때문) — 순수 외관 문제.
+- 건축 모드에서 퀵슬롯 HUD(핫바)가 팔레트와 같은 화면 아래쪽에 겹쳐 보일 수 있다(핫바를 팔레트로 바꾸는 규칙은 HUD 쪽 작업이 필요).
+- 환급은 내림이라 비용 1짜리 재료는 돌려받지 못한다. 월드 장애물은 배치를 막지 않는다. `BuildZone`은 회전·스케일하면 안 된다. 다층은 그래프 테스트로만 검증(씬은 1층만).
+- `StructureManager`·`BuildTargetResolver`·`PlacementValidator` 같은 씬 쪽 클래스는 EditMode가 아니라 Play 프로브로 검증했다(자동화된 회귀 테스트가 아님).
+- 이전에 적은 남은 일: `StructureRepository` Boot 배선, 실제 건축 씬의 무기·퀵슬롯 핸들러 연결, `DropPlacement`의 벽 윗면 문제.

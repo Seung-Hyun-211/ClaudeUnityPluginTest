@@ -35,7 +35,7 @@
 
 ### 테스트 환경
 
-- [testing.md](testing.md) — 자동 EditMode 테스트(198개): 어셈블리 분리(`Game`/`Game.Editor`/`Game.Tests.EditMode`), 실행 방법, 범위, 변이 확인, 아직 없는 곳
+- [testing.md](testing.md) — 자동 EditMode 테스트(215개): 어셈블리 분리(`Game`/`Game.Editor`/`Game.Tests.EditMode`), 실행 방법, 범위, 변이 확인, 아직 없는 곳
 - [test-scenes.md](test-scenes.md) — 시스템별 테스트 씬(`Assets/Scenes/Tests`)과 OnGUI 디버그 하니스 목록, 사용법, 헤드리스 CLI로 검증할 수 없어서 에디터에서 직접 확인해야 하는 항목
 
 ### 설계 검증
