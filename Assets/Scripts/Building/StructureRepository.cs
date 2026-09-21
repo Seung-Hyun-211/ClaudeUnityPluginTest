@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Game.Persistence;
@@ -8,15 +9,17 @@ namespace Game.Building
     /// Saves what has been built in every scene under one key. It must live
     /// on a persistent object (next to SaveGameService in the Boot scene):
     /// SaveGameService only writes the providers registered at that moment, so
-    /// a provider that lived in one scene would wipe that scene's structures
+    /// a provider that lived in one scene would wipe that scene structures
     /// from the file whenever the player saved from another scene
-    /// (documents/building-system.md ch. 10). Scenes' StructureManagers attach
+    /// (documents/building-system.md ch. 10). Scenes StructureManagers attach
     /// to it, receive their saved structures, and hand their current state
-    /// back when captured or when the scene closes.
+    /// back whenever it changes, when captured, and when the scene closes.
+    /// A snapshot is only taken from a manager whose objects are all still
+    /// alive; during teardown the last good one is kept instead.
     /// </summary>
     public class StructureRepository : MonoBehaviour, ISaveDataProvider
     {
-        private readonly HashSet<StructureManager> attached = new();
+        private readonly Dictionary<StructureManager, Action> attached = new();
         private StructureSaveData data = new();
 
         public static StructureRepository Instance { get; private set; }
@@ -47,7 +50,7 @@ namespace Game.Building
 
         public void Attach(StructureManager manager)
         {
-            if (!attached.Add(manager))
+            if (attached.ContainsKey(manager))
             {
                 return;
             }
@@ -57,21 +60,26 @@ namespace Game.Building
             {
                 manager.Rebuild(saved);
             }
+
+            Action onChanged = () => Store(manager);
+            attached[manager] = onChanged;
+            manager.Changed += onChanged;
         }
 
         public void Detach(StructureManager manager)
         {
-            if (attached.Remove(manager))
+            if (attached.Remove(manager, out var onChanged))
             {
-                data.Set(manager.SceneId, manager.Snapshot().pieces);
+                manager.Changed -= onChanged;
+                Store(manager);
             }
         }
 
         public object CaptureState()
         {
-            foreach (var manager in attached)
+            foreach (var manager in attached.Keys)
             {
-                data.Set(manager.SceneId, manager.Snapshot().pieces);
+                Store(manager);
             }
 
             return data;
@@ -81,9 +89,17 @@ namespace Game.Building
         {
             data = JsonUtility.FromJson<StructureSaveData>((string)state) ?? new StructureSaveData();
 
-            foreach (var manager in attached)
+            foreach (var manager in attached.Keys)
             {
                 manager.Rebuild(data.Find(manager.SceneId));
+            }
+        }
+
+        private void Store(StructureManager manager)
+        {
+            if (manager.CanSnapshotCompletely)
+            {
+                data.Set(manager.SceneId, manager.Snapshot().pieces);
             }
         }
     }

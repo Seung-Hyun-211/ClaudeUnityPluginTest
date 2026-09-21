@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 namespace Game.Building
@@ -6,10 +5,11 @@ namespace Game.Building
     /// <summary>
     /// Snapping a point in the world to a grid piece, and where a piece sits
     /// in the world (documents/building-system.md ch. 3). Pure math, no scene
-    /// objects. The grid's origin is the corner of a build zone at ground
-    /// height; +X and +Z are cell counts.
+    /// objects; the per-kind shapes live in <see cref="IPieceGeometry"/>. The
+    /// origin of the grid is the corner of a build zone at ground height; +X
+    /// and +Z are cell counts.
     ///
-    /// Vertical layout per level: the floor slab's top is at
+    /// Vertical layout per level: the floor slab top is at
     /// <c>groundY + level * FloorHeight</c> and the slab reaches
     /// <see cref="SlabThickness"/> below it (the ground floor is sunk flush
     /// with the ground so nobody has to step up onto it); walls, doors and
@@ -37,21 +37,7 @@ namespace Game.Building
             float pz = (worldPoint.z - origin.z) / CellSize;
             int level = Mathf.Max(0, LevelAt(worldPoint.y, origin.y));
 
-            switch (kind)
-            {
-                case PieceKind.Floor:
-                    return PieceKey.Floor(Mathf.FloorToInt(px), Mathf.FloorToInt(pz), level);
-
-                case PieceKind.Wall:
-                case PieceKind.Door:
-                {
-                    var (x, z, axis) = EdgeAt(px, pz);
-                    return new PieceKey(kind, x, z, level, axis);
-                }
-
-                default:
-                    throw new ArgumentException("Pillars are made automatically and cannot be aimed at.", nameof(kind));
-            }
+            return PieceGeometries.Default.For(kind).KeyAt(kind, px, pz, level);
         }
 
         /// <summary>The grid line nearest to a point (in cell units): the edge it lies along.</summary>
@@ -67,40 +53,12 @@ namespace Game.Building
                 : (Mathf.FloorToInt(px), rz, Axis.X);
         }
 
-        public static Vector3 Size(PieceKind kind)
-        {
-            switch (kind)
-            {
-                case PieceKind.Floor:
-                    return new Vector3(CellSize, SlabThickness, CellSize);
-                case PieceKind.Pillar:
-                    return new Vector3(PillarWidth, WallHeight, PillarWidth);
-                default:
-                    return new Vector3(CellSize, WallHeight, WallThickness);
-            }
-        }
+        public static Vector3 Size(PieceKind kind) => PieceGeometries.Default.For(kind).Size;
 
-        /// <summary>World position of the piece's center. Wall and door prefabs are authored along X and turned by <see cref="Rotation"/> for Z edges.</summary>
-        public static Vector3 Center(PieceKey key, Vector3 origin)
-        {
-            float top = TopOf(key.Level, origin.y);
-            float standingY = top + WallHeight * 0.5f;
+        /// <summary>World position of the piece center.</summary>
+        public static Vector3 Center(PieceKey key, Vector3 origin) => PieceGeometries.Default.For(key.Kind).Center(key, origin);
 
-            switch (key.Kind)
-            {
-                case PieceKind.Floor:
-                    return new Vector3(origin.x + (key.X + 0.5f) * CellSize, top - SlabThickness * 0.5f, origin.z + (key.Z + 0.5f) * CellSize);
-                case PieceKind.Pillar:
-                    return new Vector3(origin.x + key.X * CellSize, standingY, origin.z + key.Z * CellSize);
-                default:
-                    return key.Axis == Axis.X
-                        ? new Vector3(origin.x + (key.X + 0.5f) * CellSize, standingY, origin.z + key.Z * CellSize)
-                        : new Vector3(origin.x + key.X * CellSize, standingY, origin.z + (key.Z + 0.5f) * CellSize);
-            }
-        }
-
-        public static Quaternion Rotation(PieceKey key) =>
-            key.IsEdgePiece && key.Axis == Axis.Z ? Quaternion.Euler(0f, 90f, 0f) : Quaternion.identity;
+        public static Quaternion Rotation(PieceKey key) => PieceGeometries.Default.For(key.Kind).Rotation(key);
 
         // Math.Round would round exact halves to even, which makes ties flip between neighbours.
         private static int RoundHalfUp(float value) => Mathf.FloorToInt(value + 0.5f);

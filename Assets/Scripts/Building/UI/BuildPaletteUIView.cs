@@ -20,7 +20,8 @@ namespace Game.Building.UI
             BuildCategory.Wall, BuildCategory.Floor, BuildCategory.Stairs, BuildCategory.Ladder, BuildCategory.Door,
         };
 
-        [SerializeField] private PlayerActionModeSwitch modeSwitch;
+        [Tooltip("Must implement IPlayerActionMode (PlayerActionModeSwitch).")]
+        [SerializeField] private MonoBehaviour modeSource;
         [SerializeField] private BuildModeController controller;
 
         [Tooltip("Must implement IItemStore (PlayerItemStore).")]
@@ -39,12 +40,24 @@ namespace Game.Building.UI
         [SerializeField] private Color selectedColor = new(0.2f, 0.45f, 0.9f, 0.9f);
         [SerializeField] private Color unavailableColor = new(0.15f, 0.15f, 0.15f, 0.5f);
 
+        // Names for slots that have no piece data yet (stairs, ladder).
+        private static readonly System.Collections.Generic.Dictionary<BuildCategory, string> FallbackNames = new()
+        {
+            [BuildCategory.Wall] = "벽",
+            [BuildCategory.Floor] = "바닥",
+            [BuildCategory.Stairs] = "계단",
+            [BuildCategory.Ladder] = "사다리",
+            [BuildCategory.Door] = "문",
+        };
+
         private readonly StringBuilder text = new();
         private IItemStore store;
+        private IPlayerActionMode mode;
 
         private void Awake()
         {
             store = storeSource as IItemStore;
+            mode = modeSource as IPlayerActionMode;
 
             if (fontOverride != null)
             {
@@ -65,7 +78,7 @@ namespace Game.Building.UI
 
         private void Update()
         {
-            bool building = modeSwitch != null && modeSwitch.Current == PlayerActionMode.Build;
+            bool building = !mode.IsCombat();
             if (root != null && root.activeSelf != building)
             {
                 root.SetActive(building);
@@ -128,19 +141,7 @@ namespace Game.Building.UI
                 return data.DisplayName;
             }
 
-            switch (category)
-            {
-                case BuildCategory.Wall:
-                    return "벽";
-                case BuildCategory.Floor:
-                    return "바닥";
-                case BuildCategory.Stairs:
-                    return "계단";
-                case BuildCategory.Ladder:
-                    return "사다리";
-                default:
-                    return "문";
-            }
+            return FallbackNames.TryGetValue(category, out var name) ? name : category.ToString();
         }
 
         private static string StatusMessage(PlacementStatus status)

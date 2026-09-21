@@ -19,11 +19,15 @@ namespace Game.Characters.Player
         [SerializeField] private PlayerController controller;
         [SerializeField] private WindowManager windowManager;
         [Tooltip("Optional. While building, left click places pieces instead of attacking; movement is unaffected.")]
-        [SerializeField] private PlayerActionModeSwitch actionMode;
+        [SerializeField] private MonoBehaviour actionModeSource;
         [SerializeField] private Key moveUpKey = Key.W;
         [SerializeField] private Key moveDownKey = Key.S;
         [SerializeField] private Key moveLeftKey = Key.A;
         [SerializeField] private Key moveRightKey = Key.D;
+
+        private IPlayerActionMode actionMode;
+
+        private void Awake() => actionMode = actionModeSource as IPlayerActionMode;
 
         private void Update()
         {
@@ -35,7 +39,7 @@ namespace Game.Characters.Player
 
             controller.OnMoveInput(ReadMoveInput());
 
-            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && (actionMode == null || actionMode.IsCombat))
+            if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && actionMode.IsCombat())
             {
                 controller.OnAttackInput();
             }

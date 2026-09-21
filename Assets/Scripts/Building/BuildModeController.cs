@@ -6,30 +6,19 @@ using Game.Items;
 
 namespace Game.Building
 {
-    /// <summary>Why the piece under the crosshair can or cannot be placed (documents/building-system.md 7).</summary>
-    public enum PlacementStatus
-    {
-        Ok,
-        NoTarget,
-        NotAvailable,
-        OutOfZone,
-        Occupied,
-        Unsupported,
-        Blocked,
-        NoMaterials,
-        TooFar,
-    }
-
     /// <summary>
-    /// The building mode's brain (scene composition root): aims, snaps the
-    /// target to the grid, validates it (zone, support, characters in the way,
-    /// materials, reach), drives the ghost, and places or demolishes on
-    /// request. Input comes from BuildInputHandler; the structure itself is
-    /// StructureManager's.
+    /// The building mode (scene composition root): wires the aim, validation
+    /// and economy helpers together, keeps the selected category and the
+    /// current target, drives the ghost, and places or demolishes on request.
+    /// The work itself is done elsewhere - BuildTargetResolver (aim and snap),
+    /// PlacementValidator (may it go here), BuildEconomy (materials),
+    /// StructureManager (the structure); input comes from BuildInputHandler.
     /// </summary>
     public class BuildModeController : MonoBehaviour
     {
-        [SerializeField] private PlayerActionModeSwitch modeSwitch;
+        [Tooltip("Must implement IPlayerActionMode (PlayerActionModeSwitch).")]
+        [SerializeField] private MonoBehaviour modeSource;
+
         [SerializeField] private StructureManager structures;
         [SerializeField] private GhostPreview ghost;
         [SerializeField] private Transform player;
@@ -40,16 +29,18 @@ namespace Game.Building
         [Tooltip("Must implement IAimSource (CameraAimSource).")]
         [SerializeField] private MonoBehaviour aimSource;
 
+        [Tooltip("Optional, must implement IItemDropper. Empty = drop through the world item factory.")]
+        [SerializeField] private MonoBehaviour dropperSource;
+
         [SerializeField, Min(1f)] private float maxReach = 5f;
         [SerializeField, Min(1f)] private float rayLength = 40f;
 
-        private const float FlushTolerance = 0.02f;
-
-        private readonly RaycastHit[] rayHits = new RaycastHit[16];
-        private readonly Collider[] overlaps = new Collider[16];
-
+        private IPlayerActionMode mode;
         private IItemStore store;
         private IAimSource aim;
+        private BuildTargetResolver resolver;
+        private PlacementValidator validator;
+        private BuildEconomy economy;
         private bool hasTarget;
         private PieceKey target;
 
@@ -57,30 +48,35 @@ namespace Game.Building
         public bool DoorFlipped { get; private set; }
         public PlacementStatus Status { get; private set; } = PlacementStatus.NoTarget;
         public PieceKey? Target => hasTarget ? target : null;
-        public bool IsBuilding => modeSwitch != null && modeSwitch.Current == PlayerActionMode.Build;
+        public bool IsBuilding => mode != null && !mode.IsCombat();
         public StructureManager Structures => structures;
 
         public event Action SelectionChanged;
 
+        // The one place that knows what a character is.
+        private static bool IsCharacter(Collider collider) => collider.GetComponentInParent<CharacterMotor>() != null;
+
         private void Awake()
         {
+            mode = modeSource as IPlayerActionMode;
             store = storeSource as IItemStore;
             aim = aimSource as IAimSource;
 
-            if (store == null)
+            if (mode == null || store == null || aim == null)
             {
-                Debug.LogError($"{nameof(storeSource)} must implement {nameof(IItemStore)}.", this);
+                Debug.LogError($"{nameof(BuildModeController)}: {nameof(modeSource)}, {nameof(storeSource)} and {nameof(aimSource)} must implement IPlayerActionMode, IItemStore and IAimSource.", this);
+                return;
             }
 
-            if (aim == null)
-            {
-                Debug.LogError($"{nameof(aimSource)} must implement {nameof(IAimSource)}.", this);
-            }
+            var dropper = dropperSource as IItemDropper ?? new WorldItemDropper();
+            economy = new BuildEconomy(store, dropper, () => player != null ? player.position : transform.position);
+            resolver = new BuildTargetResolver(aim, IsCharacter, rayLength);
+            validator = new PlacementValidator(structures, economy, IsCharacter, player, maxReach);
         }
 
         private void Update()
         {
-            if (!IsBuilding)
+            if (!IsBuilding || validator == null)
             {
                 ghost?.Hide();
                 hasTarget = false;
@@ -112,18 +108,7 @@ namespace Game.Building
         }
 
         /// <summary>Whether the player holds every material a piece costs.</summary>
-        public bool CanAfford(BuildPieceData data)
-        {
-            foreach (var entry in data.Cost)
-            {
-                if (store.CountOf(entry.item) < entry.count)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
+        public bool CanAfford(BuildPieceData data) => economy != null && economy.CanAfford(data);
 
         /// <summary>Builds the piece under the crosshair when it is valid, spending its materials.</summary>
         public bool TryPlace()
@@ -133,22 +118,24 @@ namespace Game.Building
                 return false;
             }
 
+            // Pay first, so a piece is never built for free; give the cost back if the placement then fails.
             var data = structures.Catalog.Get(Selected);
-            var result = structures.TryPlace(target, DoorFlipped);
-            if (!result.Success)
+            if (!economy.TryPay(data))
             {
                 return false;
             }
 
-            foreach (var entry in data.Cost)
+            var result = structures.TryPlace(target, DoorFlipped);
+            if (!result.Success)
             {
-                store.TryConsume(entry.item, entry.count);
+                economy.RefundAll(data);
+                return false;
             }
 
-            // A door built over a wall (or the other way round) hands the old piece's materials back.
+            // A door built over a wall (or the other way round) hands the old piece materials back.
             foreach (var replaced in result.Replaced)
             {
-                Refund(structures.Catalog.ForKind(replaced.Kind));
+                economy.Refund(structures.Catalog.ForKind(replaced.Kind));
             }
 
             return true;
@@ -157,44 +144,20 @@ namespace Game.Building
         /// <summary>Demolishes the piece under the crosshair (within reach), refunding part of its materials.</summary>
         public bool TryDemolish()
         {
-            if (!IsBuilding || !AimAtPiece(out var piece) || piece.Key.Kind == PieceKind.Pillar || !InReach(piece.transform.position))
+            if (!IsBuilding || resolver == null || !resolver.TryAimAtPiece(out var piece) || !validator.InReach(piece.transform.position))
             {
                 return false;
             }
 
             var data = piece.Data;
-            var removed = structures.Demolish(piece.Key);
-            if (removed.Count == 0)
+            if (structures.Demolish(piece.Key).Count == 0)
             {
-                return false;
+                return false; // pillars, or already gone
             }
 
             // Only the piece itself gives materials back; whatever collapsed with it does not.
-            Refund(data);
+            economy.Refund(data);
             return true;
-        }
-
-        private void Refund(BuildPieceData data)
-        {
-            if (data == null)
-            {
-                return;
-            }
-
-            foreach (var entry in data.Cost)
-            {
-                int amount = data.RefundOf(entry);
-                if (amount <= 0)
-                {
-                    continue;
-                }
-
-                int left = store.Add(entry.item, amount);
-                if (left > 0 && WorldItemFactory.Instance != null)
-                {
-                    WorldItemFactory.Instance.SpawnAll(new[] { new ItemStack(entry.item, left) }, player != null ? player.position : transform.position);
-                }
-            }
         }
 
         private void Evaluate()
@@ -202,7 +165,7 @@ namespace Game.Building
             hasTarget = false;
             Status = PlacementStatus.NoTarget;
 
-            if (structures == null || structures.Zone == null || !TryRaycast(out var hit))
+            if (structures == null || structures.Zone == null)
             {
                 return;
             }
@@ -214,103 +177,13 @@ namespace Game.Building
                 return;
             }
 
-            // A hair inside the surface: the top of a level-0 wall (y = 2.5) would otherwise read as the bottom of the level-1 slab.
-            Vector3 inside = hit.point - hit.normal * 0.05f;
-            target = BuildGrid.KeyAt(BuildCatalog.KindOf(Selected), inside, structures.Zone.Origin);
+            if (!resolver.TrySnap(data, structures.Zone.Origin, out target))
+            {
+                return;
+            }
+
             hasTarget = true;
-            Status = Validate(target, data);
-        }
-
-        private PlacementStatus Validate(PieceKey key, BuildPieceData data)
-        {
-            switch (structures.Check(key))
-            {
-                case PlacementFailure.Occupied:
-                    return PlacementStatus.Occupied;
-                case PlacementFailure.Unsupported:
-                    return structures.Zone.ContainsCell(key.X, key.Z) || key.IsEdgePiece ? PlacementStatus.Unsupported : PlacementStatus.OutOfZone;
-                case PlacementFailure.NotPlaceable:
-                    return PlacementStatus.OutOfZone;
-            }
-
-            Vector3 center = BuildGrid.Center(key, structures.Zone.Origin);
-            if (!InReach(center))
-            {
-                return PlacementStatus.TooFar;
-            }
-
-            if (CharacterInTheWay(key, center))
-            {
-                return PlacementStatus.Blocked;
-            }
-
-            return CanAfford(data) ? PlacementStatus.Ok : PlacementStatus.NoMaterials;
-        }
-
-        private bool InReach(Vector3 point) => player == null || Vector3.Distance(player.position, point) <= maxReach;
-
-        // Pieces may overlap each other by design (pillars, wall ends); only people standing there matter.
-        private bool CharacterInTheWay(PieceKey key, Vector3 center)
-        {
-            Vector3 half = BuildGrid.Size(key.Kind) * 0.45f;
-            int count = Physics.OverlapBoxNonAlloc(center, half, overlaps, BuildGrid.Rotation(key), ~0, QueryTriggerInteraction.Ignore);
-            for (int i = 0; i < count; i++)
-            {
-                if (overlaps[i].GetComponentInParent<CharacterMotor>() != null)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool TryRaycast(out RaycastHit result)
-        {
-            result = default;
-            if (aim == null || !aim.TryGetRay(out var ray))
-            {
-                return false;
-            }
-
-            int count = Physics.RaycastNonAlloc(ray, rayHits, rayLength, ~0, QueryTriggerInteraction.Ignore);
-            float best = float.MaxValue;
-            bool found = false;
-            for (int i = 0; i < count; i++)
-            {
-                // The player and enemies are in the way of the ray, not part of the ground.
-                if (rayHits[i].distance < best && rayHits[i].collider.GetComponentInParent<CharacterMotor>() == null)
-                {
-                    best = rayHits[i].distance;
-                    result = rayHits[i];
-                    found = true;
-                }
-            }
-
-            // A ground-level floor is flush with the ground, so both are hit at (nearly) the same distance.
-            // Take the piece then - otherwise a floor could never be aimed at to demolish it.
-            for (int i = 0; found && i < count; i++)
-            {
-                if (rayHits[i].distance <= best + FlushTolerance && rayHits[i].collider.GetComponentInParent<BuildPiece>() != null)
-                {
-                    result = rayHits[i];
-                    break;
-                }
-            }
-
-            return found;
-        }
-
-        private bool AimAtPiece(out BuildPiece piece)
-        {
-            piece = null;
-            if (!TryRaycast(out var hit))
-            {
-                return false;
-            }
-
-            piece = hit.collider.GetComponentInParent<BuildPiece>();
-            return piece != null;
+            Status = validator.Validate(target, data);
         }
 
         private void UpdateGhost()

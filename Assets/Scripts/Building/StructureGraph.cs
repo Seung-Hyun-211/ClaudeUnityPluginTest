@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Game.Building
 {
@@ -43,91 +44,52 @@ namespace Game.Building
     }
 
     /// <summary>
-    /// The topology of what has been built: which floors, walls, doors and
-    /// corner pillars exist, whether a new piece would be held up, and what
-    /// falls down when something goes (documents/building-system.md ch. 4).
-    /// Pure logic - no physics, materials or GameObjects - so every rule is
-    /// covered by EditMode tests.
+    /// The topology of what has been built: which pieces exist, whether a new
+    /// one would be held up, and what falls down when something goes
+    /// (documents/building-system.md ch. 4). Pure logic - no physics,
+    /// materials or GameObjects - so every rule is covered by EditMode tests.
     ///
-    /// Rules: a level-0 floor needs ground (decided by the caller); a higher
-    /// floor needs a wall/door or pillar of the level below on one of its
-    /// edges/corners; a wall/door needs a floor of its own level next to it.
-    /// Pillars are derived: one exists exactly while some wall/door touches
-    /// its vertex, and is not part of the support chain - but when a pillar is
-    /// destroyed by damage the walls at that vertex go with it.
+    /// The graph itself is kind-agnostic: it stores pieces per slot and asks
+    /// the <see cref="IPieceRule"/> of each kind what to check, create and
+    /// re-check (see <see cref="PieceRules"/> for the stage-1 rules). A wall
+    /// and a door on one edge share a slot, so a slot holds one kind at a time.
     /// </summary>
     public sealed class StructureGraph
     {
-        private readonly HashSet<PieceKey> floors = new();
-        private readonly Dictionary<PieceKey, PieceKind> edges = new(); // key = wall-kind slot, value = Wall or Door
-        private readonly HashSet<PieceKey> pillars = new();
+        private readonly Dictionary<PieceKey, PieceKind> pieces = new(); // slot -> the kind standing there
+        private readonly IReadOnlyDictionary<PieceKind, IPieceRule> rules;
 
-        public int Count => floors.Count + edges.Count + pillars.Count;
-
-        public bool Contains(PieceKey key)
+        public StructureGraph() : this(PieceRules.CreateDefault())
         {
-            switch (key.Kind)
-            {
-                case PieceKind.Floor:
-                    return floors.Contains(key);
-                case PieceKind.Pillar:
-                    return pillars.Contains(key);
-                default:
-                    return edges.TryGetValue(key.Slot, out var kind) && kind == key.Kind;
-            }
         }
 
-        public bool HasFloor(int x, int z, int level) => floors.Contains(PieceKey.Floor(x, z, level));
+        public StructureGraph(IReadOnlyDictionary<PieceKind, IPieceRule> rules)
+        {
+            this.rules = rules ?? throw new ArgumentNullException(nameof(rules));
+        }
 
-        public bool HasPillar(int x, int z, int level) => pillars.Contains(PieceKey.Pillar(x, z, level));
+        public int Count => pieces.Count;
+
+        public bool Contains(PieceKey key) => pieces.TryGetValue(key.Slot, out var kind) && kind == key.Kind;
+
+        public bool HasFloor(int x, int z, int level) => Contains(PieceKey.Floor(x, z, level));
+
+        public bool HasPillar(int x, int z, int level) => Contains(PieceKey.Pillar(x, z, level));
 
         public bool TryGetEdgePiece(int x, int z, Axis axis, int level, out PieceKind kind) =>
-            edges.TryGetValue(PieceKey.Wall(x, z, axis, level), out kind);
+            pieces.TryGetValue(PieceKey.Wall(x, z, axis, level), out kind);
 
-        public IEnumerable<PieceKey> All()
-        {
-            foreach (var floor in floors)
-            {
-                yield return floor;
-            }
-
-            foreach (var pair in edges)
-            {
-                yield return pair.Key.WithKind(pair.Value);
-            }
-
-            foreach (var pillar in pillars)
-            {
-                yield return pillar;
-            }
-        }
+        public IEnumerable<PieceKey> All() => pieces.Select(pair => pair.Key.WithKind(pair.Value));
 
         /// <param name="groundSupport">Whether a level-0 floor may go on this cell (inside a build zone); null = anywhere.</param>
         public PlacementFailure Check(PieceKey key, Func<int, int, bool> groundSupport = null)
         {
-            if (key.Kind == PieceKind.Pillar || key.Level < 0)
+            if (key.Level < 0 || !rules.TryGetValue(key.Kind, out var rule))
             {
                 return PlacementFailure.NotPlaceable;
             }
 
-            if (key.Kind == PieceKind.Floor)
-            {
-                if (floors.Contains(key))
-                {
-                    return PlacementFailure.Occupied;
-                }
-
-                bool held = key.Level == 0 ? groundSupport?.Invoke(key.X, key.Z) ?? true : FloorHeldUp(key.X, key.Z, key.Level);
-                return held ? PlacementFailure.None : PlacementFailure.Unsupported;
-            }
-
-            if (edges.TryGetValue(key.Slot, out var existing))
-            {
-                // A different kind swaps in (wall <-> door); the same kind is a duplicate.
-                return existing == key.Kind ? PlacementFailure.Occupied : PlacementFailure.None;
-            }
-
-            return EdgeStandsOnFloor(key.X, key.Z, key.Axis, key.Level) ? PlacementFailure.None : PlacementFailure.Unsupported;
+            return rule.Check(this, key, groundSupport);
         }
 
         public PlaceResult TryPlace(PieceKey key, Func<int, int, bool> groundSupport = null)
@@ -141,30 +103,21 @@ namespace Game.Building
             var added = new List<PieceKey>();
             var replaced = new List<PieceKey>();
 
-            if (key.Kind == PieceKind.Floor)
-            {
-                floors.Add(key);
-                added.Add(key);
-                return PlaceResult.Ok(added, replaced);
-            }
-
             var slot = key.Slot;
-            if (edges.TryGetValue(slot, out var old))
+            if (pieces.TryGetValue(slot, out var old) && old != key.Kind)
             {
                 replaced.Add(slot.WithKind(old));
             }
 
-            edges[slot] = key.Kind;
+            pieces[slot] = key.Kind;
             added.Add(key);
 
-            var (sx, sz) = BuildGeometry.EdgeStart(key.X, key.Z, key.Axis);
-            var (ex, ez) = BuildGeometry.EdgeEnd(key.X, key.Z, key.Axis);
-            foreach (var (vx, vz) in new[] { (sx, sz), (ex, ez) })
+            foreach (var companion in rules[key.Kind].Companions(key))
             {
-                var pillar = PieceKey.Pillar(vx, vz, key.Level);
-                if (pillars.Add(pillar))
+                if (!pieces.ContainsKey(companion.Slot))
                 {
-                    added.Add(pillar);
+                    pieces[companion.Slot] = companion.Kind;
+                    added.Add(companion);
                 }
             }
 
@@ -172,15 +125,14 @@ namespace Game.Building
         }
 
         /// <summary>
-        /// Demolishes a floor, wall or door and everything that then loses its
-        /// support. Pillars cannot be demolished directly (use
-        /// <see cref="DestroyPillar"/> for damage).
+        /// The player demolishes a piece; everything that then loses its support
+        /// falls too. Kinds whose rule forbids it (corner pillars) are left alone.
         /// </summary>
         /// <returns>Every piece removed, the demolished one first; empty when it was not there.</returns>
         public IReadOnlyList<PieceKey> Remove(PieceKey key)
         {
             var removed = new List<PieceKey>();
-            if (key.Kind == PieceKind.Pillar || !Contains(key))
+            if (!Contains(key) || !rules[key.Kind].CanDemolish)
             {
                 return removed;
             }
@@ -191,115 +143,45 @@ namespace Game.Building
             return removed;
         }
 
-        /// <summary>A pillar destroyed by damage: it goes, every wall and door touching its vertex goes, and whatever they held up falls.</summary>
-        public IReadOnlyList<PieceKey> DestroyPillar(PieceKey pillar)
+        /// <summary>
+        /// A piece destroyed by damage: it goes, so does whatever its rule says
+        /// goes with it (a pillar takes the walls at its vertex), and whatever
+        /// that held up falls.
+        /// </summary>
+        public IReadOnlyList<PieceKey> Destroy(PieceKey key)
         {
             var removed = new List<PieceKey>();
-            if (pillar.Kind != PieceKind.Pillar || !pillars.Contains(pillar))
+            if (!Contains(key))
             {
                 return removed;
             }
 
+            var collateral = rules[key.Kind].Collateral(this, key).ToList();
             var pending = new Queue<PieceKey>();
-            RemoveOne(pillar, removed, pending);
-
-            foreach (var (ex, ez, axis) in BuildGeometry.VertexEdges(pillar.X, pillar.Z))
+            RemoveOne(key, removed, pending);
+            foreach (var other in collateral)
             {
-                var slot = PieceKey.Wall(ex, ez, axis, pillar.Level);
-                if (edges.TryGetValue(slot, out var kind))
-                {
-                    RemoveOne(slot.WithKind(kind), removed, pending);
-                }
+                RemoveOne(other, removed, pending);
             }
 
             Settle(removed, pending);
             return removed;
         }
 
-        private bool EdgeStandsOnFloor(int x, int z, Axis axis, int level)
-        {
-            var (ax, az) = BuildGeometry.EdgeCellA(x, z, axis);
-            var (bx, bz) = BuildGeometry.EdgeCellB(x, z, axis);
-            return HasFloor(ax, az, level) || HasFloor(bx, bz, level);
-        }
-
-        private bool FloorHeldUp(int x, int z, int level)
-        {
-            foreach (var (ex, ez, axis) in BuildGeometry.CellEdges(x, z))
-            {
-                if (edges.ContainsKey(PieceKey.Wall(ex, ez, axis, level - 1)))
-                {
-                    return true;
-                }
-            }
-
-            foreach (var (vx, vz) in BuildGeometry.CellCorners(x, z))
-            {
-                if (HasPillar(vx, vz, level - 1))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private bool PillarNeeded(int x, int z, int level)
-        {
-            foreach (var (ex, ez, axis) in BuildGeometry.VertexEdges(x, z))
-            {
-                if (edges.ContainsKey(PieceKey.Wall(ex, ez, axis, level)))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
         // Removes one piece and queues what may have depended on it.
         private void RemoveOne(PieceKey key, List<PieceKey> removed, Queue<PieceKey> pending)
         {
-            switch (key.Kind)
+            if (!Contains(key))
             {
-                case PieceKind.Floor:
-                    if (floors.Remove(key))
-                    {
-                        removed.Add(key);
-                        foreach (var (ex, ez, axis) in BuildGeometry.CellEdges(key.X, key.Z))
-                        {
-                            pending.Enqueue(PieceKey.Wall(ex, ez, axis, key.Level));
-                        }
-                    }
-                    break;
+                return;
+            }
 
-                case PieceKind.Pillar:
-                    if (pillars.Remove(key))
-                    {
-                        removed.Add(key);
-                        foreach (var (cx, cz) in BuildGeometry.VertexCells(key.X, key.Z))
-                        {
-                            pending.Enqueue(PieceKey.Floor(cx, cz, key.Level + 1));
-                        }
-                    }
-                    break;
+            pieces.Remove(key.Slot);
+            removed.Add(key);
 
-                default:
-                    if (edges.Remove(key.Slot))
-                    {
-                        removed.Add(key);
-
-                        var (ax, az) = BuildGeometry.EdgeCellA(key.X, key.Z, key.Axis);
-                        var (bx, bz) = BuildGeometry.EdgeCellB(key.X, key.Z, key.Axis);
-                        pending.Enqueue(PieceKey.Floor(ax, az, key.Level + 1));
-                        pending.Enqueue(PieceKey.Floor(bx, bz, key.Level + 1));
-
-                        var (sx, sz) = BuildGeometry.EdgeStart(key.X, key.Z, key.Axis);
-                        var (ex, ez) = BuildGeometry.EdgeEnd(key.X, key.Z, key.Axis);
-                        pending.Enqueue(PieceKey.Pillar(sx, sz, key.Level));
-                        pending.Enqueue(PieceKey.Pillar(ex, ez, key.Level));
-                    }
-                    break;
+            foreach (var dependent in rules[key.Kind].Dependents(key))
+            {
+                pending.Enqueue(dependent);
             }
         }
 
@@ -308,29 +190,16 @@ namespace Game.Building
         {
             while (pending.Count > 0)
             {
-                var key = pending.Dequeue();
-                switch (key.Kind)
+                var queued = pending.Dequeue();
+                if (!pieces.TryGetValue(queued.Slot, out var kind))
                 {
-                    case PieceKind.Floor:
-                        if (floors.Contains(key) && key.Level > 0 && !FloorHeldUp(key.X, key.Z, key.Level))
-                        {
-                            RemoveOne(key, removed, pending);
-                        }
-                        break;
+                    continue;
+                }
 
-                    case PieceKind.Pillar:
-                        if (pillars.Contains(key) && !PillarNeeded(key.X, key.Z, key.Level))
-                        {
-                            RemoveOne(key, removed, pending);
-                        }
-                        break;
-
-                    default:
-                        if (edges.TryGetValue(key.Slot, out var kind) && !EdgeStandsOnFloor(key.X, key.Z, key.Axis, key.Level))
-                        {
-                            RemoveOne(key.Slot.WithKind(kind), removed, pending);
-                        }
-                        break;
+                var actual = queued.Slot.WithKind(kind);
+                if (!rules[kind].IsSupported(this, actual))
+                {
+                    RemoveOne(actual, removed, pending);
                 }
             }
         }

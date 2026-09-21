@@ -635,7 +635,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Game.Characters.Player.PlayerInputHandler
   controller: {fileID: 8894951832154328576}
   windowManager: {fileID: 0}
-  actionMode: {fileID: 8828320811574524183}
+  actionModeSource: {fileID: 8828320811574524183}
   moveUpKey: 37
   moveDownKey: 33
   moveLeftKey: 15

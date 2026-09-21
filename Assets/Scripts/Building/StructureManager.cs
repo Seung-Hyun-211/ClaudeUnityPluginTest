@@ -8,8 +8,10 @@ namespace Game.Building
     /// <summary>
     /// Scene-side owner of what has been built: keeps the StructureGraph and
     /// the spawned piece objects in step, turns damage into demolition, and
-    /// snapshots/rebuilds the scene's structures for saving. Costs, range and
+    /// snapshots/rebuilds the scene structures for saving. Costs, range and
     /// aiming belong to BuildModeController - this only knows the structure.
+    /// Piece-specific state (a door being open) is reached only through
+    /// <see cref="IBuildPieceState"/>.
     /// </summary>
     public class StructureManager : MonoBehaviour
     {
@@ -33,7 +35,7 @@ namespace Game.Building
 
         private void OnEnable() => StructureRepository.Instance?.Attach(this);
 
-        // The repository can come to life after this object's OnEnable (same scene), so ask again.
+        // The repository can come to life after this object OnEnable (same scene), so ask again.
         private void Start() => StructureRepository.Instance?.Attach(this);
 
         private void OnDisable() => StructureRepository.Instance?.Detach(this);
@@ -58,9 +60,10 @@ namespace Game.Building
         }
 
         /// <summary>Places a piece (and its corner pillars) and spawns the objects. Materials are not touched.</summary>
-        public PlaceResult TryPlace(PieceKey key, bool doorFlipped = false)
+        /// <param name="flipped">The player variant choice (which way a door swings).</param>
+        public PlaceResult TryPlace(PieceKey key, bool flipped = false)
         {
-            var result = TryPlaceCore(key, doorFlipped);
+            var result = TryPlaceCore(key, flipped);
             if (result.Success)
             {
                 Changed?.Invoke();
@@ -69,8 +72,8 @@ namespace Game.Building
             return result;
         }
 
-        /// <summary>The player demolishes a floor, wall or door. Whatever it held up falls too.</summary>
-        /// <returns>Every piece removed, the demolished one first.</returns>
+        /// <summary>The player demolishes a piece. Whatever it held up falls too.</summary>
+        /// <returns>Every piece removed, the demolished one first (empty for pieces that cannot be demolished by hand).</returns>
         public IReadOnlyList<PieceKey> Demolish(PieceKey key)
         {
             var removed = graph.Remove(key);
@@ -78,7 +81,7 @@ namespace Game.Building
             return removed;
         }
 
-        private PlaceResult TryPlaceCore(PieceKey key, bool doorFlipped)
+        private PlaceResult TryPlaceCore(PieceKey key, bool flipped)
         {
             var failure = Check(key);
             if (failure != PlacementFailure.None)
@@ -99,7 +102,7 @@ namespace Game.Building
 
             foreach (var added in result.Added)
             {
-                Spawn(added, added == key && key.Kind == PieceKind.Door && doorFlipped);
+                Spawn(added, added == key && flipped);
             }
 
             return result;
@@ -107,13 +110,12 @@ namespace Game.Building
 
         private void HandleDied(BuildPiece piece)
         {
-            var key = piece.Key;
-            if (!pieces.ContainsKey(key))
+            if (!pieces.ContainsKey(piece.Key))
             {
                 return; // already removed as part of a collapse
             }
 
-            DestroyRemoved(key.Kind == PieceKind.Pillar ? graph.DestroyPillar(key) : graph.Remove(key));
+            DestroyRemoved(graph.Destroy(piece.Key));
         }
 
         private void DestroyRemoved(IReadOnlyList<PieceKey> removed)
@@ -141,7 +143,7 @@ namespace Game.Building
             }
         }
 
-        private void Spawn(PieceKey key, bool doorFlipped)
+        private void Spawn(PieceKey key, bool flipped)
         {
             var data = catalog.ForKind(key.Kind);
             if (data == null || data.Prefab == null)
@@ -165,13 +167,16 @@ namespace Game.Building
             piece.Health.SetMaxHealth(data.MaxHealth);
             piece.Health.Died += () => HandleDied(piece);
 
-            if (instance.TryGetComponent(out BuildDoor door))
+            foreach (var state in instance.GetComponents<IBuildPieceState>())
             {
-                door.SetState(false, doorFlipped);
+                state.Initialize(flipped);
             }
 
             pieces[key] = piece;
         }
+
+        /// <summary>Whether every piece still has its object. During scene teardown objects may go before this manager is disabled, and a snapshot then would lose pieces.</summary>
+        public bool CanSnapshotCompletely => pieces.Values.All(piece => piece != null);
 
         /// <summary>Everything built in this scene, for saving.</summary>
         public SceneStructures Snapshot()
@@ -179,6 +184,11 @@ namespace Game.Building
             var scene = new SceneStructures { sceneId = SceneId };
             foreach (var piece in pieces.Values)
             {
+                if (piece == null)
+                {
+                    continue; // its object is already gone (scene teardown); the snapshot is then incomplete - see Complete
+                }
+
                 var key = piece.Key;
                 var record = new PieceRecord
                 {
@@ -191,10 +201,9 @@ namespace Game.Building
                     health = piece.Health.Current,
                 };
 
-                if (piece.TryGetComponent(out BuildDoor door))
+                foreach (var state in piece.GetComponents<IBuildPieceState>())
                 {
-                    record.doorOpen = door.IsOpen;
-                    record.doorFlipped = door.Flipped;
+                    state.Capture(record);
                 }
 
                 scene.pieces.Add(record);
@@ -255,9 +264,9 @@ namespace Game.Building
                 piece.Health.RestoreHealth(record.health);
             }
 
-            if (piece.TryGetComponent(out BuildDoor door))
+            foreach (var state in piece.GetComponents<IBuildPieceState>())
             {
-                door.SetState(record.doorOpen, record.doorFlipped);
+                state.Restore(record);
             }
         }
 

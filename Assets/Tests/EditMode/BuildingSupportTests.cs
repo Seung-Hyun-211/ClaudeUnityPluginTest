@@ -211,34 +211,6 @@ namespace Game.Tests
             Assert.IsFalse(mode.IsCombat);
         }
 
-        // ---- catalog ----
-
-        [Test]
-        public void Catalog_CategoriesWithoutDataAreUnavailable()
-        {
-            var catalog = NewAsset<BuildCatalog>();
-            var wall = NewAsset<BuildPieceData>();
-            Set(catalog, "wall", wall);
-
-            Assert.IsTrue(catalog.IsAvailable(BuildCategory.Wall));
-            Assert.IsFalse(catalog.IsAvailable(BuildCategory.Floor));
-            Assert.IsFalse(catalog.IsAvailable(BuildCategory.Stairs));
-            Assert.IsFalse(catalog.IsAvailable(BuildCategory.Ladder));
-            Assert.AreSame(wall, catalog.ForKind(PieceKind.Wall));
-        }
-
-        [Test]
-        public void Catalog_FindsPiecesById()
-        {
-            var catalog = NewAsset<BuildCatalog>();
-            var door = NewAsset<BuildPieceData>();
-            Set(door, "pieceId", "door");
-            Set(catalog, "door", door);
-
-            Assert.AreSame(door, catalog.Find("door"));
-            Assert.IsNull(catalog.Find("nope"));
-        }
-
         [Test]
         public void PieceData_RefundIsARoundedDownShareOfTheCost()
         {

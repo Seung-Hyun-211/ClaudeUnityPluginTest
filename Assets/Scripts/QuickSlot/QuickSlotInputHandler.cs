@@ -26,13 +26,15 @@ namespace Game.QuickSlot
         [SerializeField] private GameObject user;
         [SerializeField] private WindowManager windowManager;
         [Tooltip("Optional. Keys 4-0 mean building categories while the player is building.")]
-        [SerializeField] private PlayerActionModeSwitch actionMode;
+        [SerializeField] private MonoBehaviour actionModeSource;
 
         private IQuickSlotController controller;
+        private IPlayerActionMode actionMode;
 
         private void Awake()
         {
             controller = quickSlotControllerSource as IQuickSlotController;
+            actionMode = actionModeSource as IPlayerActionMode;
             if (controller == null)
             {
                 Debug.LogError($"{nameof(quickSlotControllerSource)} must implement {nameof(IQuickSlotController)}.", this);
@@ -44,7 +46,7 @@ namespace Game.QuickSlot
             // 인벤토리/설정 등 전체화면 창이나 팝업이 열려 있으면 Player 입력을
             // 죽인다(design-conflict-review.md #3 — 별도 Input Action Map 전환
             // 없이 동일한 효과를 낸다).
-            if (controller == null || Keyboard.current == null || windowManager.IsAnyWindowOpen || (actionMode != null && !actionMode.IsCombat))
+            if (controller == null || Keyboard.current == null || windowManager.IsAnyWindowOpen || !actionMode.IsCombat())
             {
                 return;
             }

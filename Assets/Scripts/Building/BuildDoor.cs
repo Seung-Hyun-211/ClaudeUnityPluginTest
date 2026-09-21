@@ -9,7 +9,7 @@ namespace Game.Building
     /// needs no animation asset, so it just turns the hinge.) Open state and
     /// swing direction are saved with the structure.
     /// </summary>
-    public class BuildDoor : MonoBehaviour, IInteractable
+    public class BuildDoor : MonoBehaviour, IInteractable, IBuildPieceState
     {
         [Tooltip("Pivot at one end of the door, parent of the leaf and its collider.")]
         [SerializeField] private Transform hinge;
@@ -38,5 +38,15 @@ namespace Game.Building
                 hinge.localRotation = Quaternion.Euler(0f, angle, 0f);
             }
         }
+
+        void IBuildPieceState.Initialize(bool flipped) => SetState(false, flipped);
+
+        void IBuildPieceState.Capture(PieceRecord record)
+        {
+            record.doorOpen = IsOpen;
+            record.doorFlipped = Flipped;
+        }
+
+        void IBuildPieceState.Restore(PieceRecord record) => SetState(record.doorOpen, record.doorFlipped);
     }
 }

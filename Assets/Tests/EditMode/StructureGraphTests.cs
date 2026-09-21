@@ -275,7 +275,7 @@ namespace Game.Tests
             // Walls X(0,0) and Z(0,0) meet at vertex (0,0); a third wall elsewhere is unrelated.
             var graph = Placed(Floor(0, 0), Floor(3, 0), WallX(0, 0), WallZ(0, 0), WallX(3, 0));
 
-            var removed = graph.DestroyPillar(PieceKey.Pillar(0, 0, 0));
+            var removed = graph.Destroy(PieceKey.Pillar(0, 0, 0));
 
             Assert.IsTrue(removed.Contains(PieceKey.Pillar(0, 0, 0)));
             Assert.IsTrue(removed.Contains(WallX(0, 0)));
@@ -291,7 +291,7 @@ namespace Game.Tests
         {
             var graph = Placed(Floor(0, 0), WallX(0, 0), Floor(0, 0, 1));
 
-            var removed = graph.DestroyPillar(PieceKey.Pillar(0, 0, 0));
+            var removed = graph.Destroy(PieceKey.Pillar(0, 0, 0));
 
             Assert.IsTrue(removed.Contains(Floor(0, 0, 1)));
         }
@@ -301,8 +301,8 @@ namespace Game.Tests
         {
             var graph = Placed(Floor(0, 0));
 
-            Assert.IsEmpty(graph.DestroyPillar(PieceKey.Pillar(0, 0, 0)));
-            Assert.IsEmpty(graph.DestroyPillar(WallX(0, 0)), "not a pillar");
+            Assert.IsEmpty(graph.Destroy(PieceKey.Pillar(0, 0, 0)));
+            Assert.IsEmpty(graph.Destroy(WallX(0, 0)), "nothing there");
         }
 
         [Test]
@@ -310,7 +310,7 @@ namespace Game.Tests
         {
             var graph = Placed(Floor(0, 0), WallX(0, 0), WallZ(0, 0), Floor(0, 0, 1), WallX(0, 0, 1));
 
-            var removed = graph.DestroyPillar(PieceKey.Pillar(0, 0, 0));
+            var removed = graph.Destroy(PieceKey.Pillar(0, 0, 0));
 
             Assert.AreEqual(removed.Count, removed.Distinct().Count());
             Assert.IsTrue(removed.All(key => !graph.Contains(key)));
